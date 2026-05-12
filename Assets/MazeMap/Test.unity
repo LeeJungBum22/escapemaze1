@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 533459883}
   - component: {fileID: 533459887}
   - component: {fileID: 533459886}
+  - component: {fileID: 533459888}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -228,8 +229,11 @@ MonoBehaviour:
   floorPrefab1: {fileID: 8765456392492788078, guid: 4bb603d2d56746142af84982afc1c185, type: 3}
   floorPrefab2: {fileID: 8765456392492788078, guid: e7ff9c8f8c1ffe746a1edb21c0575161, type: 3}
   wallPrefab: {fileID: 2984643709097407980, guid: dd29de1bccd2bef49a60972a2a512825, type: 3}
+  markerPrefab: {fileID: 8765456392492788078, guid: 32ac17451502fd6469e525c286442837, type: 3}
+  robotPrefab: {fileID: 7298933767521665496, guid: d99e7fa52427d594884ae7c84349d9d5, type: 3}
   sizex: 17
-  sizey: 9
+  sizey: 12
+  displayScale: 1.017
 --- !u!114 &533459887
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -274,6 +278,18 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+--- !u!114 &533459888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 533459882}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a75572b2bd75e742966ee78d3c1eb73, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
