@@ -225,8 +225,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77e8e2ba102c33e40b457058c2c7aaf0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorprefab: {fileID: 8765456392492788078, guid: 4bb603d2d56746142af84982afc1c185, type: 3}
-  spikeprefab: {fileID: 2984643709097407980, guid: dd29de1bccd2bef49a60972a2a512825, type: 3}
+  floorPrefab1: {fileID: 8765456392492788078, guid: 4bb603d2d56746142af84982afc1c185, type: 3}
+  floorPrefab2: {fileID: 8765456392492788078, guid: e7ff9c8f8c1ffe746a1edb21c0575161, type: 3}
+  wallPrefab: {fileID: 2984643709097407980, guid: dd29de1bccd2bef49a60972a2a512825, type: 3}
   sizex: 17
   sizey: 9
 --- !u!114 &533459887
