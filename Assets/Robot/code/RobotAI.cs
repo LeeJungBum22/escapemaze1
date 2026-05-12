@@ -26,19 +26,25 @@ public class RobotAI : MonoBehaviour
     {
         while (pathIndex < path.Count)
         {
-            // 배열 인덱스를 유니티 월드 좌표로 변환
+            // 1. 기본 상대 좌표 계산
             float targetX = (path[pathIndex].gridX * tileSize) - offset.x;
             float targetY = -(path[pathIndex].gridY * tileSize) + offset.y;
-            Vector3 targetPos = new Vector3(targetX, targetY, 0);
+            
+            // 🌟 2. 수정됨: 부모(Space)의 월드 좌표를 더해 실제 도착 지점 확정
+            Vector3 targetPos = transform.parent.position + new Vector3(targetX, targetY, 0);
 
             // 이동 방향 계산 (애니메이션용)
             Vector3 moveDir = (targetPos - transform.position).normalized;
-            anim.SetFloat("DirX", moveDir.x);
-            anim.SetFloat("DirY", moveDir.y);
+            if (anim != null)
+            {
+                anim.SetFloat("DirX", moveDir.x);
+                anim.SetFloat("DirY", moveDir.y);
+            }
 
             // 실제 이동
             while (Vector3.Distance(transform.position, targetPos) > 0.01f)
             {
+                // 데이터 매니저의 실시간 속도를 반영하고 싶다면 DataManager.Instance.GetFinalMoveSpeed()를 활용할 수 있습니다.
                 transform.position = Vector3.MoveTowards(transform.position, targetPos, moveSpeed * Time.deltaTime);
                 yield return null;
             }

@@ -22,7 +22,7 @@ public class Make : MonoBehaviour
     private float scaledTileSize;
     private float offsetX;
     private float offsetY;
-    private Vector3 finalScale; // 로봇에게도 적용하기 위해 전역 변수화
+    private Vector3 finalScale; 
 
     void Start()
     {
@@ -58,7 +58,6 @@ public class Make : MonoBehaviour
         offsetX = (sizex - 1) * scaledTileSize / 2f;
         offsetY = (sizey - 1) * scaledTileSize / 2f;
         
-        // 틈새 방지용 미세 보정값 (로봇에게도 동일하게 적용)
         finalScale = Vector3.one * displayScale * 1.001f;
 
         // 5. 맵 생성 (바닥, 벽, 마커)
@@ -66,12 +65,13 @@ public class Make : MonoBehaviour
         {
             for (int x = 0; x < sizex; x++)
             {
+                // 🌟 수정됨: 상대 좌표가 아닌 실제 월드 좌표를 가져옴
                 Vector3 spawnPos = GetWorldPos(x, y);
 
                 // 바닥 생성
                 GameObject floorObj = Instantiate((x + y) % 2 == 0 ? floorPrefab1 : floorPrefab2, spawnPos, Quaternion.identity);
                 floorObj.transform.localScale = finalScale;
-                floorObj.transform.parent = this.transform;
+                floorObj.transform.parent = this.transform; // 현재 Space의 자식으로 설정
                 floorObj.GetComponent<SpriteRenderer>().sortingOrder = 0;
 
                 // 벽 생성
@@ -79,7 +79,7 @@ public class Make : MonoBehaviour
                 {
                     GameObject wallObj = Instantiate(wallPrefab, spawnPos, Quaternion.identity);
                     wallObj.transform.localScale = finalScale;
-                    wallObj.transform.parent = this.transform;
+                    wallObj.transform.parent = this.transform; 
                     wallObj.GetComponent<SpriteRenderer>().sortingOrder = 1;
                 }
                 // 마커 생성
@@ -87,7 +87,7 @@ public class Make : MonoBehaviour
                 {
                     GameObject markerObj = Instantiate(markerPrefab, spawnPos, Quaternion.identity);
                     markerObj.transform.localScale = finalScale;
-                    markerObj.transform.parent = this.transform;
+                    markerObj.transform.parent = this.transform; 
                     markerObj.GetComponent<SpriteRenderer>().sortingOrder = 2;
                 }
             }
@@ -97,11 +97,16 @@ public class Make : MonoBehaviour
         StartAStarRobot(startPos, endPos);
     }
 
-    Vector3 GetWorldPos(int x, int y)
+    // ==========================================
+    // 🌟 핵심 수정 부분: 내 위치(transform.position) 기준점 더하기
+    // ==========================================
+    public Vector3 GetWorldPos(int x, int y)
     {
         float posX = (x * scaledTileSize) - offsetX;
         float posY = -(y * scaledTileSize) + offsetY;
-        return new Vector3(posX, posY, 0);
+        
+        // 내 스페이스(오브젝트)의 위치를 더해서 리턴합니다!
+        return transform.position + new Vector3(posX, posY, 0);
     }
 
     Vector2Int FindEmptySpace(int startX, int startY, int moveX, int moveY)
@@ -120,6 +125,7 @@ public class Make : MonoBehaviour
     {
         GameObject robot = Instantiate(robotPrefab, GetWorldPos(start.x, start.y), Quaternion.identity);
         robot.transform.localScale = finalScale * 1.5f; 
+        robot.transform.parent = this.transform; // 🌟 로봇도 현재 Space의 자식으로 묶어줍니다.
         
         SpriteRenderer robotSr = robot.GetComponent<SpriteRenderer>();
         if (robotSr != null) robotSr.sortingOrder = 5; 
@@ -127,7 +133,6 @@ public class Make : MonoBehaviour
         Pathfinding pathfinder = GetComponent<Pathfinding>();
         if (pathfinder != null)
         {
-            // 탐색 시작! (코루틴 실행 후, 완료되면 콜백 함수인 delegate 안의 내용이 실행됨)
             pathfinder.StartVisualSearch(maze, start, end, scaledTileSize, new Vector2(offsetX, offsetY), delegate(List<Node> path) 
             {
                 if (path != null)
@@ -135,7 +140,6 @@ public class Make : MonoBehaviour
                     RobotAI ai = robot.GetComponent<RobotAI>();
                     if (ai != null)
                     {
-                        // 탐색 연출이 다 끝난 뒤, 실제 로봇이 경로를 따라 이동 시작
                         ai.MoveToPath(path, scaledTileSize, new Vector2(offsetX, offsetY));
                     }
                 }

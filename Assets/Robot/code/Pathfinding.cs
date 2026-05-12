@@ -4,17 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 8개의 알고리즘 목록
-public enum AlgorithmType 
-{ 
-    AStar, 
-    IDAStar, 
-    BreadthFirstSearch, 
-    BestFirstSearch, 
-    Dijkstra, 
-    JumpPointSearch, 
-    OrthogonalJumpPointSearch, 
-    Trace 
-}
 
 public class Pathfinding : MonoBehaviour
 {
@@ -44,7 +33,7 @@ public class Pathfinding : MonoBehaviour
         tileSize = tSize;
         offset = off;
         
-        foreach (var marker in visualMarkers) Destroy(marker);
+        foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
         visualMarkers.Clear();
 
         switch (selectedAlgorithm)
@@ -212,7 +201,7 @@ public class Pathfinding : MonoBehaviour
         while (!pathFound && bound < 1000)
         {
             // 한계치 증가 시 시각적 마커 초기화 연출
-            foreach (var marker in visualMarkers) Destroy(marker);
+            foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
             visualMarkers.Clear();
             yield return new WaitForSeconds(0.2f); 
 
@@ -439,13 +428,20 @@ public class Pathfinding : MonoBehaviour
         return path;
     }
 
+    // 🌟 핵심 수정: 마커 생성 시 월드 좌표 보정
     void CreateVisualMarker(Node node)
     {
         float targetX = (node.gridX * tileSize) - offset.x;
         float targetY = -(node.gridY * tileSize) + offset.y;
-        Vector3 pos = new Vector3(targetX, targetY, 0);
+        
+        // 🌟 수정: 현재 스페이스 오브젝트의 위치(transform.position)를 더해줍니다.
+        Vector3 pos = transform.position + new Vector3(targetX, targetY, 0);
 
         GameObject marker = Instantiate(searchMarkerPrefab, pos, Quaternion.identity);
+        
+        // 🌟 추가: 마커를 현재 오브젝트의 자식으로 설정 (관리가 편해집니다)
+        marker.transform.parent = this.transform;
+        
         marker.transform.localScale = Vector3.one * (tileSize * 0.9f);
         visualMarkers.Add(marker);
     }
