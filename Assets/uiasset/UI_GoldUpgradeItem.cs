@@ -91,7 +91,7 @@ public class UI_GoldUpgradeItem : MonoBehaviour
         }
         
         RefreshUI();
-        FindObjectOfType<UI_RobotTab>()?.RefreshAll();
+        FindFirstObjectByType<UI_RobotTab>()?.RefreshAll();
         // 스탯창 갱신도 필요하다면 아래 줄을 활성화하세요
         // FindObjectOfType<UI_StatsPanel>()?.RefreshStats();
     }

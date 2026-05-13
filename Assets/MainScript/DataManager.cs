@@ -343,23 +343,18 @@ public class DataManager : MonoBehaviour
         return config.baseSearchDelay * Mathf.Pow(config.starDelayMultiplier, star - 1);
     }
 
-    public double GetFinalGoldReward(RobotInstance robot)
+    public double GetFinalGoldReward(RobotInstance robot, out bool isCrit)
     {
         var config = robotConfigs[robot.robotId];
-        
-        // 1. [상수] 기본보상 + (레벨업당 보상 * 레벨-1)
         double currentBaseGold = config.baseGoldReward + (config.goldRewardPerLevel * (robot.level - 1));
-        
-        // 2. [가중치] 성(Star)에 따른 뻥튀기
         currentBaseGold = currentBaseGold * Mathf.Pow(config.starGoldMultiplier, robot.star - 1);
-
-        // 3. [합연산] 글로벌 보너스와 연구소 보너스 합산 적용
         float bonusPercent = GetGlobalGoldBonus() + labData[robot.robotId].goldEarned.CurrentValue;
         double finalReward = currentBaseGold * (1.0f + bonusPercent);
 
-        // 4. 크리티컬 계산 (글로벌 보너스와 연구소 보너스 합산 적용)
         float critChance = GetGlobalCritChance() + labData[robot.robotId].critChance.CurrentValue;
-        if (Random.value < critChance)
+        
+        isCrit = (Random.value < critChance);
+        if (isCrit)
         {
             float critMult = GetGlobalCritDamage() + labData[robot.robotId].critDamage.CurrentValue;
             finalReward = finalReward * critMult;
@@ -367,15 +362,16 @@ public class DataManager : MonoBehaviour
         return finalReward;
     }
 
-    public void CheckDiamondDrop()
+    public int CheckDiamondDropAmount()
     {
         float finalChance = GetTotalDiaChance();
         if (Random.value < finalChance)
         {
             int finalAmount = GetTotalDiaAmount();
             AddDiamond(finalAmount);
-            Debug.Log($"다이아 {finalAmount}개 획득!");
+            return finalAmount;
         }
+        return 0;
     }
 
     public double CalculateCombatPower()
@@ -385,7 +381,11 @@ public class DataManager : MonoBehaviour
         {
             float sWeight = GetFinalMoveSpeed(robot) * 100f;
             float dWeight = (1.0f / GetFinalSearchDelay(robot)) * 50f;
-            double gWeight = GetFinalGoldReward(robot) * 10f;
+            
+            // 🌟 수정됨: 임시 변수(dummyCrit)를 만들어 에러를 해결합니다.
+            bool dummyCrit; 
+            double gWeight = GetFinalGoldReward(robot, out dummyCrit) * 10f; 
+            
             totalPower += (sWeight + dWeight + gWeight);
         }
         return totalPower;

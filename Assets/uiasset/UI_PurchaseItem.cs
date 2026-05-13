@@ -35,7 +35,7 @@ public class UI_PurchaseItem : MonoBehaviour
         RefreshUI(); // 구매 즉시 이 버튼의 가격 상승 및 갱신
         
         // 🌟 내 로봇 리스트도 갱신해야 방금 산 로봇이 뜹니다!
-        UI_RobotTab robotTab = FindObjectOfType<UI_RobotTab>();
+        UI_RobotTab robotTab = FindFirstObjectByType<UI_RobotTab>();
         if (robotTab != null)
         {
             robotTab.RefreshAll();

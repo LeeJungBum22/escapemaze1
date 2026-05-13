@@ -32,6 +32,7 @@ public class Pathfinding : MonoBehaviour
     {
         tileSize = tSize;
         offset = off;
+        ClearMarkers(); // 🌟 수정됨
         
         foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
         visualMarkers.Clear();
@@ -57,6 +58,11 @@ public class Pathfinding : MonoBehaviour
         }
     }
 
+    public void ClearMarkers()
+    {
+        foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
+        visualMarkers.Clear();
+    }
     // ==========================================
     // [1] A*, BFS, Dijkstra, Best-First 통합 탐색기
     // ==========================================
