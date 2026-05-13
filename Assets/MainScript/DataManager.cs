@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// 알고리즘 종류 (기존 코드와 호환)
+// 🌟 알고리즘 종류 (오메가를 위한 강화학습 추가됨)
 public enum AlgorithmType 
 { 
     AStar, IDAStar, BreadthFirstSearch, BestFirstSearch, 
-    Dijkstra, JumpPointSearch, OrthogonalJumpPointSearch, Trace, ReinforcementLearning
+    Dijkstra, JumpPointSearch, OrthogonalJumpPointSearch, Trace, ReinforcementLearning 
 }
 
 public class DataManager : MonoBehaviour
@@ -24,21 +24,19 @@ public class DataManager : MonoBehaviour
     }
 
     [Header("💰 재화")]
-    // 🌟 long에서 double로 변경: 해(10^20), 자(10^24) 이상의 단위를 감당하기 위함
     public double gold = 0; 
     public int diamond = 0;
 
-    // 🌟 추가됨: 스탯창과 실제 게임에 동시 적용될 기본 밸런스 값들
     [Header("⚙️ 기본 밸런스 설정")]
-    public float baseCritDamage = 1.5f;         // 기본 크리티컬 데미지 (150%)
-    public float baseDiamondDropChance = 0.05f; // 기본 다이아 드롭 확률 (5%)
-    public int baseDiamondDropAmount = 1;       // 기본 다이아 드롭 양 (1개)
+    public float baseCritDamage = 1.5f;         
+    public float baseDiamondDropChance = 0.05f; 
+    public int baseDiamondDropAmount = 1;       
 
     [Header("🪙 글로벌 골드 업그레이드 (Gold Tab)")]
-    public GlobalUpgrades goldUpgrades;
+    public GlobalUpgrades goldUpgrades = new GlobalUpgrades();
 
     [Header("💎 글로벌 다이아 업그레이드 (Diamond Tab)")]
-    public GlobalUpgrades diaUpgrades;
+    public GlobalUpgrades diaUpgrades = new GlobalUpgrades();
 
     [Header("🤖 로봇 기본 설정 (로봇별 고유 스탯/가격)")]
     public RobotConfig[] robotConfigs = new RobotConfig[9];
@@ -49,8 +47,11 @@ public class DataManager : MonoBehaviour
     [Header("🎒 내 로봇 인벤토리")]
     public List<RobotInstance> myRobots = new List<RobotInstance>();
 
+    [Header("📊 상점 데이터")]
+    public int[] robotPurchaseCounts = new int[9];
+
     // ==========================================
-    // 1. 데이터 구조체 정의 (원본 100% 유지)
+    // 1. 데이터 구조체 정의
     // ==========================================
 
     [System.Serializable]
@@ -58,114 +59,205 @@ public class DataManager : MonoBehaviour
     {
         public int level = 0;
         public int maxLevel = 100;
-        
-        [Header("수치 성장 (합연산 가중치)")]
-        public float valuePerLevel = 0.01f; // 0.01 = 1%
-        
-        [Header("비용 성장 (지수 함수)")]
+        public float valuePerLevel = 0.01f; 
         public double baseCost = 100;
-        public float costMultiplier = 1.15f; // 레벨당 비용 증가 배율
+        public float costMultiplier = 1.15f; 
 
         public float CurrentValue => level * valuePerLevel;
         public double GetNextCost() => baseCost * Mathf.Pow(costMultiplier, level);
-        public bool CanUpgrade => level < maxLevel;
+        // 🌟 MaxLevel이 0이면 무한히 업그레이드 가능하도록 수정
+        public bool CanUpgrade => maxLevel == 0 || level < maxLevel; 
     }
 
     [System.Serializable]
     public class GlobalUpgrades
     {
-        public UpgradeStat moveSpeed;
-        public UpgradeStat searchDelay;
-        public UpgradeStat mazeRegen;
-        public UpgradeStat goldEarned;
-        public UpgradeStat critChance;
-        public UpgradeStat critDamage;
-        
+        public UpgradeStat moveSpeed = new UpgradeStat();
+        public UpgradeStat searchDelay = new UpgradeStat();
+        public UpgradeStat mazeRegen = new UpgradeStat();
+        public UpgradeStat goldEarned = new UpgradeStat();
+        public UpgradeStat critChance = new UpgradeStat();
+        public UpgradeStat critDamage = new UpgradeStat();
         [Space(10)]
-        public UpgradeStat diaDropChance; // 골드 탭에서 사용: 다이아 획득 확률
-        public UpgradeStat diaDropAmount; // 다이아 탭에서 사용: 다이아 획득량
+        public UpgradeStat diaDropChance = new UpgradeStat(); 
+        public UpgradeStat diaDropAmount = new UpgradeStat(); 
     }
 
     [System.Serializable]
     public class RobotConfig
     {
-        public string name;
+        public string name = "미정";
         public Sprite portraitSprite;
-        public AlgorithmType algo;
-        public double purchasePrice;
-        public float purchaseCostMultiplier = 1.5f; // 구매할 때마다 가격이 오를 배율 (1.5배 등)
+        public AlgorithmType algo = AlgorithmType.AStar;
+        public double purchasePrice = 1000;
+        public float purchaseCostMultiplier = 1.5f; 
 
-        
-
-        [Header("기본 스탯 및 레벨업 보상(상수)")]
-        public double baseGoldReward = 100; 
-        public double goldRewardPerLevel = 20; 
+        public double baseGoldReward = 10; 
+        public double goldRewardPerLevel = 5; 
         public float baseMoveSpeed = 3.0f;
         public float baseSearchDelay = 0.05f;
         public float baseMazeRegenTime = 3.0f; 
 
-        [Header("로봇 레벨업 비용 (지수)")]
         public double baseLevelUpCost = 50; 
-        public float levelUpCostMultiplier = 1.25f; 
+        public float levelUpCostMultiplier = 1.2f; 
 
-        // 🌟 여기가 새로 추가되는 부분입니다! 🌟
-        [Header("💎 로봇 합성 비용 (다이아/지수)")]
-        public int baseMergeDiamondCost = 50; // 1성 -> 2성 갈 때의 기본 다이아 비용
-        public float mergeCostMultiplier = 2.0f; // 성급이 오를 때마다 곱해지는 배율
+        public int baseMergeDiamondCost = 20; 
+        public float mergeCostMultiplier = 2.5f; 
 
-        [Header("🌟 성(Star) 진화 가중치 (곱연산)")]
         public float starGoldMultiplier = 3.0f;  
-        public float starSpeedMultiplier = 1.5f; 
-        public float starDelayMultiplier = 0.7f; 
+        public float starSpeedMultiplier = 1.2f; 
+        public float starDelayMultiplier = 0.8f; 
     }
 
-    
     [System.Serializable]
     public class LabData
     {
-        public UpgradeStat critDamage;
-        public UpgradeStat critChance;
-        public UpgradeStat goldEarned;
-        public UpgradeStat moveSpeed;
-        public UpgradeStat searchDelay;
-        public UpgradeStat mazeRegen;
+        public UpgradeStat critDamage = new UpgradeStat();
+        public UpgradeStat critChance = new UpgradeStat();
+        public UpgradeStat goldEarned = new UpgradeStat();
+        public UpgradeStat moveSpeed = new UpgradeStat();
+        public UpgradeStat searchDelay = new UpgradeStat();
+        public UpgradeStat mazeRegen = new UpgradeStat();
         public bool isDiagonalUnlocked;
     }
 
     [System.Serializable]
     public class RobotInstance
     {
-        public int robotId; // 0:알파 ~ 8:오메가
+        public int robotId; 
         public int star = 1; 
         public int level = 1; 
-        public long mazeEscapeCount = 0; // 🌟 탈출 횟수 유지
+        public long mazeEscapeCount = 0; 
     }
 
     // ==========================================
-    // 🌟 추가됨: UI 스탯창과 실제 게임에 쓰일 공통 계산기 
+    // 🌟 [추가] 밸런스 자동 세팅기 (ContextMenu)
     // ==========================================
-    public float GetGlobalGoldBonus() => goldUpgrades.goldEarned.CurrentValue + diaUpgrades.goldEarned.CurrentValue;
-    public float GetGlobalSpeedBonus() => goldUpgrades.moveSpeed.CurrentValue + diaUpgrades.moveSpeed.CurrentValue;
-    public float GetGlobalSearchDelayBonus() => goldUpgrades.searchDelay.CurrentValue + diaUpgrades.searchDelay.CurrentValue;
-    public float GetGlobalRegenBonus() => goldUpgrades.mazeRegen.CurrentValue + diaUpgrades.mazeRegen.CurrentValue;
-    public float GetGlobalCritChance() => goldUpgrades.critChance.CurrentValue + diaUpgrades.critChance.CurrentValue;
-    public float GetGlobalCritDamage() => baseCritDamage + goldUpgrades.critDamage.CurrentValue + diaUpgrades.critDamage.CurrentValue;
-    public float GetTotalDiaChance() => baseDiamondDropChance + goldUpgrades.diaDropChance.CurrentValue;
-    public int GetTotalDiaAmount() => baseDiamondDropAmount + (int)diaUpgrades.diaDropAmount.CurrentValue;
-
-    public int GetLabUpgradeCount(int robotId)
+    [ContextMenu("Apply Starter Balance (초기 밸런스 덮어쓰기)")]
+    public void ApplyStarterBalance()
     {
-        var lab = labData[robotId];
-        return lab.critDamage.level + lab.critChance.level + lab.goldEarned.level + 
-               lab.moveSpeed.level + lab.searchDelay.level + lab.mazeRegen.level;
+        // 1. 글로벌 골드 연구소 세팅
+        goldUpgrades.moveSpeed = new UpgradeStat { baseCost = 100, costMultiplier = 1.3f, valuePerLevel = 0.01f, maxLevel = 50 };
+        goldUpgrades.searchDelay = new UpgradeStat { baseCost = 100, costMultiplier = 1.3f, valuePerLevel = 0.01f, maxLevel = 50 };
+        goldUpgrades.mazeRegen = new UpgradeStat { baseCost = 100, costMultiplier = 1.3f, valuePerLevel = 0.01f, maxLevel = 50 };
+        goldUpgrades.goldEarned = new UpgradeStat { baseCost = 200, costMultiplier = 1.25f, valuePerLevel = 0.05f, maxLevel = 0 }; // 골드는 무한 강화
+        goldUpgrades.critChance = new UpgradeStat { baseCost = 500, costMultiplier = 1.4f, valuePerLevel = 0.01f, maxLevel = 50 };
+        goldUpgrades.critDamage = new UpgradeStat { baseCost = 500, costMultiplier = 1.4f, valuePerLevel = 0.1f, maxLevel = 0 };
+        goldUpgrades.diaDropChance = new UpgradeStat { baseCost = 5000, costMultiplier = 1.5f, valuePerLevel = 0.01f, maxLevel = 20 };
+
+        // 2. 다이아 기초 밸런스
+        baseCritDamage = 1.5f;
+        baseDiamondDropChance = 0.05f;
+        baseDiamondDropAmount = 1;
+
+        for(int i = 0; i < 9; i++) {
+            if (robotConfigs[i] == null) robotConfigs[i] = new RobotConfig();
+            if (labData[i] == null) labData[i] = new LabData();
+            
+            // 🌟 공통 기본 배율 세팅 (물량전을 위한 구매 배율 1.1 적용)
+            robotConfigs[i].purchaseCostMultiplier = 1.1f; 
+            robotConfigs[i].levelUpCostMultiplier = 1.2f;
+            robotConfigs[i].starGoldMultiplier = 3.0f;
+            robotConfigs[i].starSpeedMultiplier = 1.2f;
+            robotConfigs[i].starDelayMultiplier = 0.8f;
+            robotConfigs[i].mergeCostMultiplier = 2.5f;
+        }
+
+        // 🌟 1티어: 다익스트라 (가장 많이 탐색함)
+        robotConfigs[0].name = "알파";
+        robotConfigs[0].algo = AlgorithmType.Dijkstra; 
+        robotConfigs[0].purchasePrice = 100; 
+        robotConfigs[0].baseGoldReward = 10;
+        robotConfigs[0].goldRewardPerLevel = 2; 
+        robotConfigs[0].baseLevelUpCost = 50;
+        robotConfigs[0].baseMergeDiamondCost = 20;
+
+        // 🌟 2티어: BFS (너비 우선 탐색)
+        robotConfigs[1].name = "베타";
+        robotConfigs[1].algo = AlgorithmType.BreadthFirstSearch;
+        robotConfigs[1].purchasePrice = 1000;
+        robotConfigs[1].baseGoldReward = 40;
+        robotConfigs[1].goldRewardPerLevel = 10; 
+        robotConfigs[1].baseLevelUpCost = 200;
+        robotConfigs[1].baseMergeDiamondCost = 30;
+
+        // 🌟 3티어: IDA* (반복적 깊이 탐색)
+        robotConfigs[2].name = "감마";
+        robotConfigs[2].algo = AlgorithmType.IDAStar;
+        robotConfigs[2].purchasePrice = 10000;
+        robotConfigs[2].baseGoldReward = 150;
+        robotConfigs[2].goldRewardPerLevel = 40; 
+        robotConfigs[2].baseLevelUpCost = 800;
+        robotConfigs[2].baseMergeDiamondCost = 40;
+
+        // 🌟 4티어: Best-First Search
+        robotConfigs[3].name = "델타";
+        robotConfigs[3].algo = AlgorithmType.BestFirstSearch;
+        robotConfigs[3].purchasePrice = 100000;
+        robotConfigs[3].baseGoldReward = 600;
+        robotConfigs[3].goldRewardPerLevel = 150; 
+        robotConfigs[3].baseLevelUpCost = 3200;
+        robotConfigs[3].baseMergeDiamondCost = 50;
+
+        // 🌟 5티어: Trace (단순 직진)
+        robotConfigs[4].name = "엡실론";
+        robotConfigs[4].algo = AlgorithmType.Trace;
+        robotConfigs[4].purchasePrice = 1000000;
+        robotConfigs[4].baseGoldReward = 2500;
+        robotConfigs[4].goldRewardPerLevel = 600; 
+        robotConfigs[4].baseLevelUpCost = 12800;
+        robotConfigs[4].baseMergeDiamondCost = 60;
+
+        // 🌟 6티어: A* (에이스타)
+        robotConfigs[5].name = "제타";
+        robotConfigs[5].algo = AlgorithmType.AStar;
+        robotConfigs[5].purchasePrice = 10000000;
+        robotConfigs[5].baseGoldReward = 10000;
+        robotConfigs[5].goldRewardPerLevel = 2500; 
+        robotConfigs[5].baseLevelUpCost = 50000;
+        robotConfigs[5].baseMergeDiamondCost = 70;
+
+        // 🌟 7티어: JPS (점프 포인트 서치)
+        robotConfigs[6].name = "에타";
+        robotConfigs[6].algo = AlgorithmType.JumpPointSearch;
+        robotConfigs[6].purchasePrice = 100000000;
+        robotConfigs[6].baseGoldReward = 45000;
+        robotConfigs[6].goldRewardPerLevel = 12000; 
+        robotConfigs[6].baseLevelUpCost = 200000;
+        robotConfigs[6].baseMergeDiamondCost = 80;
+
+        // 🌟 8티어: OJPS (직교 점프 포인트 서치 - 가장 최적화됨)
+        robotConfigs[7].name = "세타";
+        robotConfigs[7].algo = AlgorithmType.OrthogonalJumpPointSearch;
+        robotConfigs[7].purchasePrice = 1000000000;
+        robotConfigs[7].baseGoldReward = 200000;
+        robotConfigs[7].goldRewardPerLevel = 50000; 
+        robotConfigs[7].baseLevelUpCost = 800000;
+        robotConfigs[7].baseMergeDiamondCost = 90;
+
+        // 🌟 9티어 (최종): 강화학습
+        robotConfigs[8].name = "오메가";
+        robotConfigs[8].algo = AlgorithmType.ReinforcementLearning;
+        robotConfigs[8].purchasePrice = 100000000000; 
+        robotConfigs[8].baseGoldReward = 1000000;
+        robotConfigs[8].goldRewardPerLevel = 250000; 
+        robotConfigs[8].baseLevelUpCost = 5000000;
+        robotConfigs[8].baseMergeDiamondCost = 100;
+
+        Debug.Log("✅ 국민 방치형 밸런스 스타터팩이 적용되었습니다!");
     }
 
-
     // ==========================================
-    // 2. 초기 세팅 및 데이터 지급 (원본 유지)
+    // 2. 초기 세팅 및 데이터 지급
     // ==========================================
     void InitializeData()
     {
+        // 🌟 기존에 세팅해둔 값이 없다면 알아서 초기 밸런스를 세팅해줍니다.
+        if (robotConfigs[0] == null || string.IsNullOrEmpty(robotConfigs[0].name) || robotConfigs[0].name == "미정")
+        {
+            ApplyStarterBalance();
+        }
+
         if (myRobots.Count == 0)
         {
             myRobots.Add(new RobotInstance { robotId = 0, star = 1, level = 1 }); // 알파
@@ -174,7 +266,7 @@ public class DataManager : MonoBehaviour
     }
 
     // ==========================================
-    // 3. 핵심 경제 로직 (구매, 레벨업, 합성) (원본 유지)
+    // 3. 핵심 경제 로직
     // ==========================================
     public void UpgradeGlobalGold(int id)
     {
@@ -186,30 +278,22 @@ public class DataManager : MonoBehaviour
         {
             gold -= cost;
             target.level++;
-            Debug.Log($"{id}번 골드 업그레이드 성공! 현재 레벨: {target.level}");
         }
     }
     
-        // ==========================================
-    // 🌟 [추가] 다이아 연구소 업그레이드 실행 함수
-    // ==========================================
     public void UpgradeGlobalDiamond(int id)
     {
-        // 다이아 탭용 매칭 함수 사용 (이미 작성되어 있던 것)
         UpgradeStat target = GetDiaUpgradeStatById(id);
         if (target == null || !target.CanUpgrade) return;
 
         double cost = target.GetNextCost();
-        // 🌟 다이아몬드 잔액 체크
         if (diamond >= cost)
         {
-            diamond -= (int)cost; // 다이아몬드는 int이므로 형변환
+            diamond -= (int)cost;
             target.level++;
-            Debug.Log($"{id}번 다이아 업그레이드 성공!");
         }
     }
 
-    // ID에 따라 어떤 스탯을 강화할지 매칭해주는 헬퍼 함수
     public UpgradeStat GetGoldUpgradeStatById(int id)
     {
         switch (id)
@@ -220,12 +304,11 @@ public class DataManager : MonoBehaviour
             case 3: return goldUpgrades.goldEarned;
             case 4: return goldUpgrades.critChance;
             case 5: return goldUpgrades.critDamage;
-            case 6: return goldUpgrades.diaDropChance; // 골드 탭의 마지막은 다이아 확률
+            case 6: return goldUpgrades.diaDropChance;
             default: return null;
         }
     }
     
-    // 다이아 탭용 매칭 함수 (나중에 다이아 탭 만드실 때 사용)
     public UpgradeStat GetDiaUpgradeStatById(int id)
     {
         switch (id)
@@ -236,7 +319,7 @@ public class DataManager : MonoBehaviour
             case 3: return diaUpgrades.goldEarned;
             case 4: return diaUpgrades.critChance;
             case 5: return diaUpgrades.critDamage;
-            case 6: return diaUpgrades.diaDropAmount; // 다이아 탭의 마지막은 다이아 획득량
+            case 6: return diaUpgrades.diaDropAmount;
             default: return null;
         }
     }
@@ -248,7 +331,7 @@ public class DataManager : MonoBehaviour
         {
             gold -= price;
             myRobots.Add(new RobotInstance { robotId = robotId, star = 1, level = 1 });
-            robotPurchaseCounts[robotId]++; // 구매 횟수 증가!
+            robotPurchaseCounts[robotId]++;
         }
     }
 
@@ -275,23 +358,33 @@ public class DataManager : MonoBehaviour
             r1.star++;
             r1.level = 1;
             myRobots.Remove(r2);
-            Debug.Log($"{robotConfigs[r1.robotId].name} {r1.star}성 합성 성공!");
         }
     }
-    [Header("📊 상점 데이터")]
-    // 로봇 ID별로 구매 횟수를 저장 (0~7번 로봇까지)
-    public int[] robotPurchaseCounts = new int[9];
 
     public double GetCurrentPurchasePrice(int robotId)
     {
         var config = robotConfigs[robotId];
-        // 공식: 초기 가격 * (배율 ^ 구매 횟수)
         return config.purchasePrice * Mathf.Pow(config.purchaseCostMultiplier, robotPurchaseCounts[robotId]);
     }
 
     // ==========================================
-    // 4. 최종 스탯 계산 (🌟 공통 계산기 함수를 적용하여 깔끔하게 수정됨)
+    // 4. 최종 스탯 계산
     // ==========================================
+    public float GetGlobalGoldBonus() => goldUpgrades.goldEarned.CurrentValue + diaUpgrades.goldEarned.CurrentValue;
+    public float GetGlobalSpeedBonus() => goldUpgrades.moveSpeed.CurrentValue + diaUpgrades.moveSpeed.CurrentValue;
+    public float GetGlobalSearchDelayBonus() => goldUpgrades.searchDelay.CurrentValue + diaUpgrades.searchDelay.CurrentValue;
+    public float GetGlobalRegenBonus() => goldUpgrades.mazeRegen.CurrentValue + diaUpgrades.mazeRegen.CurrentValue;
+    public float GetGlobalCritChance() => goldUpgrades.critChance.CurrentValue + diaUpgrades.critChance.CurrentValue;
+    public float GetGlobalCritDamage() => baseCritDamage + goldUpgrades.critDamage.CurrentValue + diaUpgrades.critDamage.CurrentValue;
+    public float GetTotalDiaChance() => baseDiamondDropChance + goldUpgrades.diaDropChance.CurrentValue;
+    public int GetTotalDiaAmount() => baseDiamondDropAmount + (int)diaUpgrades.diaDropAmount.CurrentValue;
+
+    public int GetLabUpgradeCount(int robotId)
+    {
+        var lab = labData[robotId];
+        return lab.critDamage.level + lab.critChance.level + lab.goldEarned.level + 
+               lab.moveSpeed.level + lab.searchDelay.level + lab.mazeRegen.level;
+    }
 
     public float GetFinalMazeRegenTime(RobotInstance robot)
     {
@@ -300,11 +393,9 @@ public class DataManager : MonoBehaviour
         return Mathf.Max(0.5f, baseRegen * (1.0f - Mathf.Min(reducePercent, 0.9f)));
     }
 
-    // 🌟 다이아 합성 비용 계산 함수 추가
     public int GetMergeCost(int robotId, int currentStar)
     {
         var config = robotConfigs[robotId];
-        // 비용 = 기본다이아 * (배율 ^ (현재성급-1)) -> 소수점은 반올림
         return Mathf.RoundToInt(config.baseMergeDiamondCost * Mathf.Pow(config.mergeCostMultiplier, currentStar - 1));
     }
 
@@ -321,9 +412,7 @@ public class DataManager : MonoBehaviour
         float reducePercent = GetGlobalSearchDelayBonus() + labData[robot.robotId].searchDelay.CurrentValue;
         return Mathf.Max(0.001f, baseDelay * (1.0f - Mathf.Min(reducePercent, 0.9f)));
     }
-    // ==========================================
-    // 🌟 UI 표기용 순수 스탯 계산기 (글로벌/연구소 보너스 제외)
-    // ==========================================
+
     public double GetPureBaseGold(int robotId, int star, int level)
     {
         var config = robotConfigs[robotId];
@@ -374,6 +463,7 @@ public class DataManager : MonoBehaviour
         return 0;
     }
 
+    // 🌟 에러 수정됨: 전투력 계산 시 dummyCrit 사용
     public double CalculateCombatPower()
     {
         double totalPower = 0;
@@ -382,7 +472,6 @@ public class DataManager : MonoBehaviour
             float sWeight = GetFinalMoveSpeed(robot) * 100f;
             float dWeight = (1.0f / GetFinalSearchDelay(robot)) * 50f;
             
-            // 🌟 수정됨: 임시 변수(dummyCrit)를 만들어 에러를 해결합니다.
             bool dummyCrit; 
             double gWeight = GetFinalGoldReward(robot, out dummyCrit) * 10f; 
             
