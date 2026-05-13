@@ -9439,7 +9439,7 @@ MonoBehaviour:
     starDelayMultiplier: 0.8
   - name: "\uC624\uBA54\uAC00"
     portraitSprite: {fileID: 819395190, guid: 0266ff989ab70c24db38d3bda8f7af7a, type: 3}
-    algo: 0
+    algo: 8
     purchasePrice: 0
     purchaseCostMultiplier: 1.5
     baseGoldReward: 100
@@ -9788,43 +9788,7 @@ MonoBehaviour:
       baseCost: 100
       costMultiplier: 1.1
     isDiagonalUnlocked: 0
-  myRobots:
-  - robotId: 1
-    star: 0
-    level: 0
-    mazeEscapeCount: 0
-  - robotId: 2
-    star: 0
-    level: 0
-    mazeEscapeCount: 0
-  - robotId: 3
-    star: 0
-    level: 0
-    mazeEscapeCount: 0
-  - robotId: 4
-    star: 0
-    level: 0
-    mazeEscapeCount: 0
-  - robotId: 5
-    star: 0
-    level: 0
-    mazeEscapeCount: 0
-  - robotId: 6
-    star: 0
-    level: 0
-    mazeEscapeCount: 0
-  - robotId: 6
-    star: 0
-    level: 0
-    mazeEscapeCount: 0
-  - robotId: 7
-    star: 0
-    level: 0
-    mazeEscapeCount: 0
-  - robotId: 0
-    star: 0
-    level: 0
-    mazeEscapeCount: 0
+  myRobots: []
   robotPurchaseCounts: 000000000000000000000000000000000000000000000000000000000000000000000000
 --- !u!4 &1351651209
 Transform:

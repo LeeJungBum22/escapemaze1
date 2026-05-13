@@ -5,7 +5,7 @@ using UnityEngine;
 public enum AlgorithmType 
 { 
     AStar, IDAStar, BreadthFirstSearch, BestFirstSearch, 
-    Dijkstra, JumpPointSearch, OrthogonalJumpPointSearch, Trace 
+    Dijkstra, JumpPointSearch, OrthogonalJumpPointSearch, Trace, ReinforcementLearning
 }
 
 public class DataManager : MonoBehaviour
