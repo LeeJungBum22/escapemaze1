@@ -24,8 +24,15 @@ public class DataManager : MonoBehaviour
     }
 
     [Header("💰 재화")]
-    public long gold = 0; 
+    // 🌟 long에서 double로 변경: 해(10^20), 자(10^24) 이상의 단위를 감당하기 위함
+    public double gold = 0; 
     public int diamond = 0;
+
+    // 🌟 추가됨: 스탯창과 실제 게임에 동시 적용될 기본 밸런스 값들
+    [Header("⚙️ 기본 밸런스 설정")]
+    public float baseCritDamage = 1.5f;         // 기본 크리티컬 데미지 (150%)
+    public float baseDiamondDropChance = 0.05f; // 기본 다이아 드롭 확률 (5%)
+    public int baseDiamondDropAmount = 1;       // 기본 다이아 드롭 양 (1개)
 
     [Header("🪙 글로벌 골드 업그레이드 (Gold Tab)")]
     public GlobalUpgrades goldUpgrades;
@@ -43,7 +50,7 @@ public class DataManager : MonoBehaviour
     public List<RobotInstance> myRobots = new List<RobotInstance>();
 
     // ==========================================
-    // 1. 데이터 구조체 정의
+    // 1. 데이터 구조체 정의 (원본 100% 유지)
     // ==========================================
 
     [System.Serializable]
@@ -56,11 +63,11 @@ public class DataManager : MonoBehaviour
         public float valuePerLevel = 0.01f; // 0.01 = 1%
         
         [Header("비용 성장 (지수 함수)")]
-        public long baseCost = 100;
+        public double baseCost = 100;
         public float costMultiplier = 1.15f; // 레벨당 비용 증가 배율
 
         public float CurrentValue => level * valuePerLevel;
-        public long GetNextCost() => (long)(baseCost * Mathf.Pow(costMultiplier, level));
+        public double GetNextCost() => baseCost * Mathf.Pow(costMultiplier, level);
         public bool CanUpgrade => level < maxLevel;
     }
 
@@ -83,19 +90,28 @@ public class DataManager : MonoBehaviour
     public class RobotConfig
     {
         public string name;
+        public Sprite portraitSprite;
         public AlgorithmType algo;
-        public long purchasePrice;
+        public double purchasePrice;
+        public float purchaseCostMultiplier = 1.5f; // 구매할 때마다 가격이 오를 배율 (1.5배 등)
+
+        
 
         [Header("기본 스탯 및 레벨업 보상(상수)")]
-        public long baseGoldReward = 100; 
-        public long goldRewardPerLevel = 20; // 레벨업 시 오르는 고정 골드량
+        public double baseGoldReward = 100; 
+        public double goldRewardPerLevel = 20; 
         public float baseMoveSpeed = 3.0f;
         public float baseSearchDelay = 0.05f;
         public float baseMazeRegenTime = 3.0f; 
 
         [Header("로봇 레벨업 비용 (지수)")]
-        public long baseLevelUpCost = 50;
+        public double baseLevelUpCost = 50; 
         public float levelUpCostMultiplier = 1.25f; 
+
+        // 🌟 여기가 새로 추가되는 부분입니다! 🌟
+        [Header("💎 로봇 합성 비용 (다이아/지수)")]
+        public int baseMergeDiamondCost = 50; // 1성 -> 2성 갈 때의 기본 다이아 비용
+        public float mergeCostMultiplier = 2.0f; // 성급이 오를 때마다 곱해지는 배율
 
         [Header("🌟 성(Star) 진화 가중치 (곱연산)")]
         public float starGoldMultiplier = 3.0f;  
@@ -121,14 +137,34 @@ public class DataManager : MonoBehaviour
         public int robotId; // 0:알파 ~ 8:오메가
         public int star = 1; 
         public int level = 1; 
+        public long mazeEscapeCount = 0; // 🌟 탈출 횟수 유지
     }
 
     // ==========================================
-    // 2. 초기 세팅 및 데이터 지급
+    // 🌟 추가됨: UI 스탯창과 실제 게임에 쓰일 공통 계산기 
+    // ==========================================
+    public float GetGlobalGoldBonus() => goldUpgrades.goldEarned.CurrentValue + diaUpgrades.goldEarned.CurrentValue;
+    public float GetGlobalSpeedBonus() => goldUpgrades.moveSpeed.CurrentValue + diaUpgrades.moveSpeed.CurrentValue;
+    public float GetGlobalSearchDelayBonus() => goldUpgrades.searchDelay.CurrentValue + diaUpgrades.searchDelay.CurrentValue;
+    public float GetGlobalRegenBonus() => goldUpgrades.mazeRegen.CurrentValue + diaUpgrades.mazeRegen.CurrentValue;
+    public float GetGlobalCritChance() => goldUpgrades.critChance.CurrentValue + diaUpgrades.critChance.CurrentValue;
+    public float GetGlobalCritDamage() => baseCritDamage + goldUpgrades.critDamage.CurrentValue + diaUpgrades.critDamage.CurrentValue;
+    public float GetTotalDiaChance() => baseDiamondDropChance + goldUpgrades.diaDropChance.CurrentValue;
+    public int GetTotalDiaAmount() => baseDiamondDropAmount + (int)diaUpgrades.diaDropAmount.CurrentValue;
+
+    public int GetLabUpgradeCount(int robotId)
+    {
+        var lab = labData[robotId];
+        return lab.critDamage.level + lab.critChance.level + lab.goldEarned.level + 
+               lab.moveSpeed.level + lab.searchDelay.level + lab.mazeRegen.level;
+    }
+
+
+    // ==========================================
+    // 2. 초기 세팅 및 데이터 지급 (원본 유지)
     // ==========================================
     void InitializeData()
     {
-        // 리스트가 비어있다면 초기 로봇 지급 (알파 & 오메가)
         if (myRobots.Count == 0)
         {
             myRobots.Add(new RobotInstance { robotId = 0, star = 1, level = 1 }); // 알파
@@ -137,16 +173,17 @@ public class DataManager : MonoBehaviour
     }
 
     // ==========================================
-    // 3. 핵심 경제 로직 (구매, 레벨업, 합성)
+    // 3. 핵심 경제 로직 (구매, 레벨업, 합성) (원본 유지)
     // ==========================================
 
     public void BuyRobot(int robotId)
     {
-        long price = robotConfigs[robotId].purchasePrice;
+        double price = GetCurrentPurchasePrice(robotId);
         if (gold >= price)
         {
             gold -= price;
             myRobots.Add(new RobotInstance { robotId = robotId, star = 1, level = 1 });
+            robotPurchaseCounts[robotId]++; // 구매 횟수 증가!
         }
     }
 
@@ -154,9 +191,8 @@ public class DataManager : MonoBehaviour
     {
         if (robot.level >= 10) return;
 
-        // 비용 = 기본비용 * (비용배율 ^ 레벨-1) * (성급보정 2^성-1)
         double exponentialCost = robotConfigs[robot.robotId].baseLevelUpCost * Mathf.Pow(robotConfigs[robot.robotId].levelUpCostMultiplier, robot.level - 1);
-        long finalCost = (long)(exponentialCost * Mathf.Pow(2.0f, robot.star - 1)); 
+        double finalCost = exponentialCost * Mathf.Pow(2.0f, robot.star - 1); 
 
         if (gold >= finalCost)
         {
@@ -167,7 +203,6 @@ public class DataManager : MonoBehaviour
 
     public void MergeRobots(RobotInstance r1, RobotInstance r2)
     {
-        // 오메가는 합성 불가 예외처리
         if (r1.robotId == 8 || r2.robotId == 8) return;
 
         if (r1.robotId == r2.robotId && r1.star == r2.star && r1.level == 10 && r2.level == 10)
@@ -178,90 +213,119 @@ public class DataManager : MonoBehaviour
             Debug.Log($"{robotConfigs[r1.robotId].name} {r1.star}성 합성 성공!");
         }
     }
+    [Header("📊 상점 데이터")]
+    // 로봇 ID별로 구매 횟수를 저장 (0~7번 로봇까지)
+    public int[] robotPurchaseCounts = new int[9];
+
+    public double GetCurrentPurchasePrice(int robotId)
+    {
+        var config = robotConfigs[robotId];
+        // 공식: 초기 가격 * (배율 ^ 구매 횟수)
+        return config.purchasePrice * Mathf.Pow(config.purchaseCostMultiplier, robotPurchaseCounts[robotId]);
+    }
 
     // ==========================================
-    // 4. 최종 스탯 계산 (합연산 공식 적용)
+    // 4. 최종 스탯 계산 (🌟 공통 계산기 함수를 적용하여 깔끔하게 수정됨)
     // ==========================================
 
-    // 미로 재생성 쿨타임 계산
     public float GetFinalMazeRegenTime(RobotInstance robot)
     {
         float baseRegen = robotConfigs[robot.robotId].baseMazeRegenTime;
-        // % 감소치 합산
-        float reducePercent = goldUpgrades.mazeRegen.CurrentValue + diaUpgrades.mazeRegen.CurrentValue + labData[robot.robotId].mazeRegen.CurrentValue;
+        float reducePercent = GetGlobalRegenBonus() + labData[robot.robotId].mazeRegen.CurrentValue;
         return Mathf.Max(0.5f, baseRegen * (1.0f - Mathf.Min(reducePercent, 0.9f)));
     }
 
-    // 이동 속도 계산
+    // 🌟 다이아 합성 비용 계산 함수 추가
+    public int GetMergeCost(int robotId, int currentStar)
+    {
+        var config = robotConfigs[robotId];
+        // 비용 = 기본다이아 * (배율 ^ (현재성급-1)) -> 소수점은 반올림
+        return Mathf.RoundToInt(config.baseMergeDiamondCost * Mathf.Pow(config.mergeCostMultiplier, currentStar - 1));
+    }
+
     public float GetFinalMoveSpeed(RobotInstance robot)
     {
         float baseSpeed = robotConfigs[robot.robotId].baseMoveSpeed * Mathf.Pow(robotConfigs[robot.robotId].starSpeedMultiplier, robot.star - 1);
-        float bonusPercent = goldUpgrades.moveSpeed.CurrentValue + diaUpgrades.moveSpeed.CurrentValue + labData[robot.robotId].moveSpeed.CurrentValue;
+        float bonusPercent = GetGlobalSpeedBonus() + labData[robot.robotId].moveSpeed.CurrentValue;
         return baseSpeed * (1.0f + bonusPercent);
     }
 
-    // 탐색 딜레이 계산
     public float GetFinalSearchDelay(RobotInstance robot)
     {
         float baseDelay = robotConfigs[robot.robotId].baseSearchDelay * Mathf.Pow(robotConfigs[robot.robotId].starDelayMultiplier, robot.star - 1);
-        float reducePercent = goldUpgrades.searchDelay.CurrentValue + diaUpgrades.searchDelay.CurrentValue + labData[robot.robotId].searchDelay.CurrentValue;
+        float reducePercent = GetGlobalSearchDelayBonus() + labData[robot.robotId].searchDelay.CurrentValue;
         return Mathf.Max(0.001f, baseDelay * (1.0f - Mathf.Min(reducePercent, 0.9f)));
     }
+    // ==========================================
+    // 🌟 UI 표기용 순수 스탯 계산기 (글로벌/연구소 보너스 제외)
+    // ==========================================
+    public double GetPureBaseGold(int robotId, int star, int level)
+    {
+        var config = robotConfigs[robotId];
+        double baseGold = config.baseGoldReward + (config.goldRewardPerLevel * (level - 1));
+        return baseGold * Mathf.Pow(config.starGoldMultiplier, star - 1);
+    }
 
-    // 골드 보상 계산 (상수 증가 + 성급 배수 + 합연산 %)
-    public long GetFinalGoldReward(RobotInstance robot)
+    public float GetPureBaseSpeed(int robotId, int star)
+    {
+        var config = robotConfigs[robotId];
+        return config.baseMoveSpeed * Mathf.Pow(config.starSpeedMultiplier, star - 1);
+    }
+
+    public float GetPureBaseDelay(int robotId, int star)
+    {
+        var config = robotConfigs[robotId];
+        return config.baseSearchDelay * Mathf.Pow(config.starDelayMultiplier, star - 1);
+    }
+
+    public double GetFinalGoldReward(RobotInstance robot)
     {
         var config = robotConfigs[robot.robotId];
         
         // 1. [상수] 기본보상 + (레벨업당 보상 * 레벨-1)
-        long currentBaseGold = config.baseGoldReward + (config.goldRewardPerLevel * (robot.level - 1));
+        double currentBaseGold = config.baseGoldReward + (config.goldRewardPerLevel * (robot.level - 1));
         
         // 2. [가중치] 성(Star)에 따른 뻥튀기
-        currentBaseGold = (long)(currentBaseGold * Mathf.Pow(config.starGoldMultiplier, robot.star - 1));
+        currentBaseGold = currentBaseGold * Mathf.Pow(config.starGoldMultiplier, robot.star - 1);
 
-        // 3. [합연산] 모든 골드 획득량 % 합산
-        float bonusPercent = goldUpgrades.goldEarned.CurrentValue + diaUpgrades.goldEarned.CurrentValue + labData[robot.robotId].goldEarned.CurrentValue;
-        long finalReward = (long)(currentBaseGold * (1.0f + bonusPercent));
+        // 3. [합연산] 글로벌 보너스와 연구소 보너스 합산 적용
+        float bonusPercent = GetGlobalGoldBonus() + labData[robot.robotId].goldEarned.CurrentValue;
+        double finalReward = currentBaseGold * (1.0f + bonusPercent);
 
-        // 4. 크리티컬 계산 (합연산)
-        float critChance = goldUpgrades.critChance.CurrentValue + diaUpgrades.critChance.CurrentValue + labData[robot.robotId].critChance.CurrentValue;
+        // 4. 크리티컬 계산 (글로벌 보너스와 연구소 보너스 합산 적용)
+        float critChance = GetGlobalCritChance() + labData[robot.robotId].critChance.CurrentValue;
         if (Random.value < critChance)
         {
-            float critMult = 1.5f + goldUpgrades.critDamage.CurrentValue + diaUpgrades.critDamage.CurrentValue + labData[robot.robotId].critDamage.CurrentValue;
-            finalReward = (long)(finalReward * critMult);
+            float critMult = GetGlobalCritDamage() + labData[robot.robotId].critDamage.CurrentValue;
+            finalReward = finalReward * critMult;
         }
         return finalReward;
     }
 
-    // 💎 다이아 드롭 체크 (확률-골드업글 / 획득량-다이아업글)
     public void CheckDiamondDrop()
     {
-        float baseChance = 0.05f; // 기본 5%
-        float finalChance = baseChance + goldUpgrades.diaDropChance.CurrentValue;
-
+        float finalChance = GetTotalDiaChance();
         if (Random.value < finalChance)
         {
-            int baseAmount = 1;
-            int finalAmount = baseAmount + (int)diaUpgrades.diaDropAmount.CurrentValue;
+            int finalAmount = GetTotalDiaAmount();
             AddDiamond(finalAmount);
             Debug.Log($"다이아 {finalAmount}개 획득!");
         }
     }
 
-    // 전체 전투력 계산
-    public long CalculateCombatPower()
+    public double CalculateCombatPower()
     {
-        long totalPower = 0;
+        double totalPower = 0;
         foreach (var robot in myRobots)
         {
             float sWeight = GetFinalMoveSpeed(robot) * 100f;
             float dWeight = (1.0f / GetFinalSearchDelay(robot)) * 50f;
-            float gWeight = GetFinalGoldReward(robot) * 10f;
-            totalPower += (long)(sWeight + dWeight + gWeight);
+            double gWeight = GetFinalGoldReward(robot) * 10f;
+            totalPower += (sWeight + dWeight + gWeight);
         }
         return totalPower;
     }
 
-    public void AddGold(long amount) { gold += amount; }
+    public void AddGold(double amount) { gold += amount; }
     public void AddDiamond(int amount) { diamond += amount; }
 }
