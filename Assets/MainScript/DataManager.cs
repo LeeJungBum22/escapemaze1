@@ -119,6 +119,7 @@ public class DataManager : MonoBehaviour
         public float starDelayMultiplier = 0.7f; 
     }
 
+    
     [System.Serializable]
     public class LabData
     {
@@ -175,6 +176,70 @@ public class DataManager : MonoBehaviour
     // ==========================================
     // 3. 핵심 경제 로직 (구매, 레벨업, 합성) (원본 유지)
     // ==========================================
+    public void UpgradeGlobalGold(int id)
+    {
+        UpgradeStat target = GetGoldUpgradeStatById(id);
+        if (target == null || !target.CanUpgrade) return;
+
+        double cost = target.GetNextCost();
+        if (gold >= cost)
+        {
+            gold -= cost;
+            target.level++;
+            Debug.Log($"{id}번 골드 업그레이드 성공! 현재 레벨: {target.level}");
+        }
+    }
+    
+        // ==========================================
+    // 🌟 [추가] 다이아 연구소 업그레이드 실행 함수
+    // ==========================================
+    public void UpgradeGlobalDiamond(int id)
+    {
+        // 다이아 탭용 매칭 함수 사용 (이미 작성되어 있던 것)
+        UpgradeStat target = GetDiaUpgradeStatById(id);
+        if (target == null || !target.CanUpgrade) return;
+
+        double cost = target.GetNextCost();
+        // 🌟 다이아몬드 잔액 체크
+        if (diamond >= cost)
+        {
+            diamond -= (int)cost; // 다이아몬드는 int이므로 형변환
+            target.level++;
+            Debug.Log($"{id}번 다이아 업그레이드 성공!");
+        }
+    }
+
+    // ID에 따라 어떤 스탯을 강화할지 매칭해주는 헬퍼 함수
+    public UpgradeStat GetGoldUpgradeStatById(int id)
+    {
+        switch (id)
+        {
+            case 0: return goldUpgrades.moveSpeed;
+            case 1: return goldUpgrades.searchDelay;
+            case 2: return goldUpgrades.mazeRegen;
+            case 3: return goldUpgrades.goldEarned;
+            case 4: return goldUpgrades.critChance;
+            case 5: return goldUpgrades.critDamage;
+            case 6: return goldUpgrades.diaDropChance; // 골드 탭의 마지막은 다이아 확률
+            default: return null;
+        }
+    }
+    
+    // 다이아 탭용 매칭 함수 (나중에 다이아 탭 만드실 때 사용)
+    public UpgradeStat GetDiaUpgradeStatById(int id)
+    {
+        switch (id)
+        {
+            case 0: return diaUpgrades.moveSpeed;
+            case 1: return diaUpgrades.searchDelay;
+            case 2: return diaUpgrades.mazeRegen;
+            case 3: return diaUpgrades.goldEarned;
+            case 4: return diaUpgrades.critChance;
+            case 5: return diaUpgrades.critDamage;
+            case 6: return diaUpgrades.diaDropAmount; // 다이아 탭의 마지막은 다이아 획득량
+            default: return null;
+        }
+    }
 
     public void BuyRobot(int robotId)
     {

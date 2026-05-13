@@ -5,7 +5,7 @@ using System.Text;
 public class UI_StatsPanel : MonoBehaviour
 {
     [Header("📊 글로벌 스탯 표시 (데이터매니저 최종값)")]
-    public TextMeshProUGUI totalRobotCountText;
+    public TextMeshProUGUI searchDelayText; // 🌟 기존 로봇 수 변수를 탐색 딜레이용으로 이름 변경
     public TextMeshProUGUI goldBonusText;
     public TextMeshProUGUI speedBonusText;
     public TextMeshProUGUI mazeRegenText;
@@ -25,7 +25,9 @@ public class UI_StatsPanel : MonoBehaviour
         if (dm == null) return;
 
         // --- 1. 글로벌 정보 표시 ---
-        if (totalRobotCountText != null) totalRobotCountText.text = $"{dm.myRobots.Count} 대";
+        // 🌟 핵심 수정: 탐색 딜레이 감소율 표기 적용
+        if (searchDelayText != null) searchDelayText.text = $"-{(dm.GetGlobalSearchDelayBonus() * 100):F1}%";
+        
         if (goldBonusText != null) goldBonusText.text = $"+{(dm.GetGlobalGoldBonus() * 100):F1}%";
         if (speedBonusText != null) speedBonusText.text = $"+{(dm.GetGlobalSpeedBonus() * 100):F1}%";
         if (mazeRegenText != null) mazeRegenText.text = $"-{(dm.GetGlobalRegenBonus() * 100):F1}%";
@@ -34,7 +36,7 @@ public class UI_StatsPanel : MonoBehaviour
         if (critDamageText != null) critDamageText.text = $"{(dm.GetGlobalCritDamage() * 100):F0}%"; 
         
         if (diaChanceText != null) diaChanceText.text = $"{(dm.GetTotalDiaChance() * 100):F1}%";   
-        if (diaAmountText != null) diaAmountText.text = $"{dm.GetTotalDiaAmount()} 개";             
+        if (diaAmountText != null) diaAmountText.text = $"{dm.GetTotalDiaAmount()} 개";            
 
         // --- 2. 로봇별 리스트 생성 ---
         StringBuilder sb = new StringBuilder();
@@ -64,7 +66,6 @@ public class UI_StatsPanel : MonoBehaviour
 
                 int labBuyCount = dm.GetLabUpgradeCount(i);
 
-                // 🌟 핵심 수정: <pos=값em> 을 이용해 시작 위치를 픽스하고, 끝에 \n을 넣어 줄바꿈을 두 배로 늘림
                 if (i == 8) 
                 {
                     sb.AppendLine($"[{rName}]<pos=6em>Lv.{maxLevel}<pos=12em>| 연구:{labBuyCount}회<pos=19em>| 탈출:{totalEscapes:N0}회\n\n");
