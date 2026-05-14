@@ -19,7 +19,15 @@ public class UI_GoldUpgradeItem : MonoBehaviour
 
     private void OnEnable()
     {
+        if (DataManager.Instance != null)
+            DataManager.Instance.OnCurrencyChanged += RefreshUI;
         RefreshUI();
+    }
+
+    private void OnDisable()
+    {
+        if (DataManager.Instance != null)
+            DataManager.Instance.OnCurrencyChanged -= RefreshUI;
     }
 
     public void RefreshUI()
@@ -33,21 +41,21 @@ public class UI_GoldUpgradeItem : MonoBehaviour
 
         if (stat == null) return;
 
+        // 🌟 핵심 방어 코드: 인스펙터 연결이 누락된 버튼이 하나라도 있으면 에러 뿜고 멈추는 걸 방지!
+        if (levelText == null || statText == null || costText == null || upgradeButton == null) return;
+
         levelText.text = $"Lv.{stat.level}";
 
-        // 🌟 핵심 수정: 다이아 업그레이드 6번(획득 갯수)인지 확인
         bool isAmountStat = (isDiamondUpgrade && upgradeId == 6);
 
         string curStr = "";
         string nextStr = "";
 
-        // 개수 스탯일 때는 100을 곱하지 않고 '개'를 붙임
         if (isAmountStat)
         {
             curStr = $"+{stat.CurrentValue:F0}개";
             nextStr = $"+{((stat.level + 1) * stat.valuePerLevel):F0}개";
         }
-        // 확률/비율 스탯일 때는 100을 곱하고 '%'를 붙임
         else
         {
             curStr = $"+{(stat.CurrentValue * 100f):F1}%";
@@ -92,7 +100,5 @@ public class UI_GoldUpgradeItem : MonoBehaviour
         
         RefreshUI();
         FindFirstObjectByType<UI_RobotTab>()?.RefreshAll();
-        // 스탯창 갱신도 필요하다면 아래 줄을 활성화하세요
-        // FindObjectOfType<UI_StatsPanel>()?.RefreshStats();
     }
 }

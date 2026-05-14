@@ -177,6 +177,8 @@ public class Make : MonoBehaviour
             pathfinder.selectedAlgorithm = assignedAlgorithm;
             pathfinder.searchDelay = DataManager.Instance.GetFinalSearchDelay(bot);
 
+            pathfinder.currentRobotId = bot.robotId;
+
             pathfinder.StartVisualSearch(maze, startPos, endPos, scaledTileSize, new Vector2(offsetX, offsetY), delegate(List<Node> path) 
             {
                 if (path != null)

@@ -9,7 +9,10 @@ public class Pathfinding : MonoBehaviour
 {
     [Header("Algorithm Settings")]
     public AlgorithmType selectedAlgorithm = AlgorithmType.AStar;
-    public bool allowDiagonal = true;
+    public bool allowDiagonal = true; // 에디터 기본 테스트용
+    
+    // 🌟 추가됨: 현재 미로를 탐색 중인 로봇의 ID (-1이면 기본값 사용)
+    [HideInInspector] public int currentRobotId = -1;
 
     [Header("Visualization Settings")]
     public GameObject searchMarkerPrefab;
@@ -28,11 +31,21 @@ public class Pathfinding : MonoBehaviour
         public int neighborIndex;
     }
 
+    // 🌟 추가됨: 데이터매니저의 연구소 데이터를 확인하여 대각선 이동 가능 여부를 결정
+    private bool CheckDiagonalAllowed()
+    {
+        if (currentRobotId != -1 && DataManager.Instance != null)
+        {
+            return DataManager.Instance.labData[currentRobotId].isDiagonalUnlocked;
+        }
+        return allowDiagonal;
+    }
+
     public void StartVisualSearch(int[,] maze, Vector2Int startPos, Vector2Int targetPos, float tSize, Vector2 off, Action<List<Node>> onComplete)
     {
         tileSize = tSize;
         offset = off;
-        ClearMarkers(); // 🌟 수정됨
+        ClearMarkers(); 
         
         foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
         visualMarkers.Clear();
@@ -63,6 +76,7 @@ public class Pathfinding : MonoBehaviour
         foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
         visualMarkers.Clear();
     }
+
     // ==========================================
     // [1] A*, BFS, Dijkstra, Best-First 통합 탐색기
     // ==========================================
@@ -193,7 +207,7 @@ public class Pathfinding : MonoBehaviour
     }
 
     // ==========================================
-    // [3] IDA* (반복적 깊이 탐색 A*) - 버그 수정판
+    // [3] IDA* (반복적 깊이 탐색 A*)
     // ==========================================
     IEnumerator IDAStarCoroutine(int[,] maze, Vector2Int startPos, Vector2Int targetPos, Action<List<Node>> onComplete)
     {
@@ -206,7 +220,6 @@ public class Pathfinding : MonoBehaviour
 
         while (!pathFound && bound < 1000)
         {
-            // 한계치 증가 시 시각적 마커 초기화 연출
             foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
             visualMarkers.Clear();
             yield return new WaitForSeconds(0.2f); 
@@ -289,6 +302,12 @@ public class Pathfinding : MonoBehaviour
     IEnumerator JPSCoroutine(int[,] maze, Vector2Int startPos, Vector2Int targetPos, Action<List<Node>> onComplete)
     {
         bool isOrthogonal = (selectedAlgorithm == AlgorithmType.OrthogonalJumpPointSearch);
+        
+        // 🌟 수정됨: 대각선 해금이 안 되어있다면 JPS도 강제로 직교 모드(OJPS)로만 동작하게 강제
+        if (!CheckDiagonalAllowed())
+        {
+            isOrthogonal = true;
+        }
         
         Node[,] nodes = CreateNodes(maze);
         List<Node> openList = new List<Node>();
@@ -401,12 +420,15 @@ public class Pathfinding : MonoBehaviour
 
     List<Node> GetNeighbors(Node node, Node[,] nodes, int sizeX, int sizeY)
     {
+        // 🌟 수정됨: 대각선 체크 함수 사용
+        bool canDiagonal = CheckDiagonalAllowed(); 
+        
         List<Node> neighbors = new List<Node>();
         for (int x = -1; x <= 1; x++)
             for (int y = -1; y <= 1; y++)
             {
                 if (x == 0 && y == 0) continue;
-                if (!allowDiagonal && (Mathf.Abs(x) == 1 && Mathf.Abs(y) == 1)) continue;
+                if (!canDiagonal && (Mathf.Abs(x) == 1 && Mathf.Abs(y) == 1)) continue;
                 int cx = node.gridX + x, cy = node.gridY + y;
                 if (cx >= 0 && cx < sizeX && cy >= 0 && cy < sizeY) neighbors.Add(nodes[cy, cx]);
             }
@@ -415,9 +437,13 @@ public class Pathfinding : MonoBehaviour
 
     int GetDistance(Node a, Node b)
     {
+        // 🌟 수정됨: 대각선 체크 함수 사용
+        bool canDiagonal = CheckDiagonalAllowed(); 
+        
         int dstX = Mathf.Abs(a.gridX - b.gridX);
         int dstY = Mathf.Abs(a.gridY - b.gridY);
-        if (allowDiagonal) return dstX > dstY ? 14 * dstY + 10 * (dstX - dstY) : 14 * dstX + 10 * (dstY - dstX);
+        
+        if (canDiagonal) return dstX > dstY ? 14 * dstY + 10 * (dstX - dstY) : 14 * dstX + 10 * (dstY - dstX);
         else return 10 * (dstX + dstY);
     }
 
@@ -434,20 +460,15 @@ public class Pathfinding : MonoBehaviour
         return path;
     }
 
-    // 🌟 핵심 수정: 마커 생성 시 월드 좌표 보정
     void CreateVisualMarker(Node node)
     {
         float targetX = (node.gridX * tileSize) - offset.x;
         float targetY = -(node.gridY * tileSize) + offset.y;
         
-        // 🌟 수정: 현재 스페이스 오브젝트의 위치(transform.position)를 더해줍니다.
         Vector3 pos = transform.position + new Vector3(targetX, targetY, 0);
 
         GameObject marker = Instantiate(searchMarkerPrefab, pos, Quaternion.identity);
-        
-        // 🌟 추가: 마커를 현재 오브젝트의 자식으로 설정 (관리가 편해집니다)
         marker.transform.parent = this.transform;
-        
         marker.transform.localScale = Vector3.one * (tileSize * 0.9f);
         visualMarkers.Add(marker);
     }

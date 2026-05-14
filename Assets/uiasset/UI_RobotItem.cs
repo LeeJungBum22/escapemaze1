@@ -21,8 +21,31 @@ public class UI_RobotItem : MonoBehaviour
     public TextMeshProUGUI costText;          
     public TextMeshProUGUI buttonLabel;       
 
-    // 강조용 밝은 빨간색 컬러 코드
     private readonly string highlightColor = "#FF3333"; 
+
+    private void OnEnable()
+    {
+        if (DataManager.Instance != null)
+        {
+            DataManager.Instance.OnCurrencyChanged += SafeRefreshUI;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (DataManager.Instance != null)
+        {
+            DataManager.Instance.OnCurrencyChanged -= SafeRefreshUI;
+        }
+    }
+
+    private void SafeRefreshUI()
+    {
+        if (myRobot != null) 
+        {
+            RefreshUI();
+        }
+    }
 
     public void Setup(DataManager.RobotInstance robot, UI_RobotTab tab)
     {
@@ -47,9 +70,6 @@ public class UI_RobotItem : MonoBehaviour
         float curSpeed = dm.GetPureBaseSpeed(id, myRobot.star);
         string curDelayStr = dm.GetPureBaseDelay(id, myRobot.star).ToString("F2"); 
 
-        // -----------------------------------------------------
-        // [모드 1] 레벨업 상태 (Lv.1 ~ 9)
-        // -----------------------------------------------------
         if (myRobot.level < 10)
         {
             double nextGold = dm.GetPureBaseGold(id, myRobot.star, myRobot.level + 1);
@@ -58,7 +78,8 @@ public class UI_RobotItem : MonoBehaviour
             moveSpeedText.text = $"이동속도 : {curSpeed}";
             searchDelayText.text = $"탐색속도 : {curDelayStr}";
 
-            double cost = config.baseLevelUpCost * Mathf.Pow(config.levelUpCostMultiplier, myRobot.level - 1);
+            // 🌟 수정됨: DataManager의 공식을 그대로 가져와서 정확한 값을 표시합니다.
+            double cost = dm.GetLevelUpCost(id, myRobot.star, myRobot.level);
             
             buttonLabel.text = "레벨업";
             costText.text = CurrencyFormatter.FormatKorean(cost).Replace("\n", ""); 
@@ -67,9 +88,6 @@ public class UI_RobotItem : MonoBehaviour
             upgradeButton.onClick.RemoveAllListeners();
             upgradeButton.onClick.AddListener(() => OnLevelUpClick());
         }
-        // -----------------------------------------------------
-        // [모드 2] 합성 대기 상태 (Lv.10)
-        // -----------------------------------------------------
         else
         {
             if (id == 8) // 오메가
@@ -96,7 +114,6 @@ public class UI_RobotItem : MonoBehaviour
                 buttonLabel.text = ""; 
                 
                 int mergeCost = dm.GetMergeCost(id, myRobot.star);
-                // 🌟 "합성" 글자 제거, 조건과 가격만 남김!
                 costText.text = $"{myRobot.star}성{config.name}Lv.10\n+\n<color={highlightColor}>{mergeCost}</color>";
 
                 bool canMerge = HasMergePartner();
@@ -150,7 +167,7 @@ public class UI_RobotItem : MonoBehaviour
         if (partner != null)
         {
             int mergeCost = DataManager.Instance.GetMergeCost(myRobot.robotId, myRobot.star);
-            DataManager.Instance.diamond -= mergeCost;
+            DataManager.Instance.AddDiamond(-mergeCost); 
             DataManager.Instance.MergeRobots(myRobot, partner);
             parentTab.RefreshAll();
         }
