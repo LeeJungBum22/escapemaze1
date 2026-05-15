@@ -5513,7 +5513,9 @@ MonoBehaviour:
   m_text: "\uAC15\uD654\uD559\uC2B5\n\uC2A4\uC2A4\uB85C \uACBD\uD5D8\uD558\uACE0
     \uC9C4\uD654\uD558\uB294 \uC778\uACF5\uC9C0\uB2A5 \uADF8 \uC790\uCCB4.\\n<color=#FFDD00>[\uD2B9\uC9D5]
     \uBAA8\uB4E0 \uC9C0\uC2DD\uC744 \uCD08\uC6D4\uD558\uC5EC \uCC28\uC6D0\uC774 \uB2E4\uB978
-    \uC2A4\uD399\uC744 \uC790\uB791\uD558\uB294 \uBBF8\uB85C \uD0D0\uC0C9\uC758 \uB05D\uD310\uC655\uC785\uB2C8\uB2E4."
+    \uC2A4\uD399\uC744 \uC790\uB791\uD558\uB294 \uBBF8\uB85C \uD0D0\uC0C9\uC758 \uB05D\uD310\uC655\uC785\uB2C8\uB2E4.\n\uC624\uBA54\uAC00\uB294
+    \uBCF4\uC2A4\uC804 \uC804\uC6A9 \uC720\uB2DB\uC785\uB2C8\uB2E4. \uB808\uBCA8\uC5C5\uB2F9
+    \uAC15\uD654\uD559\uC2B5 \uACFC\uC815\uC744 \uC870\uAE08 \uC9C4\uD589\uD569\uB2C8\uB2E4,"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 80d6f4f5e52277e4eb0dbe602acc19d3, type: 2}
   m_sharedMaterial: {fileID: -6109732233043962389, guid: 80d6f4f5e52277e4eb0dbe602acc19d3, type: 2}
@@ -40171,7 +40173,39 @@ MonoBehaviour:
     pullCount: 0
     basePullCost: 450
     pullCostIncrement: 450
-  myRobots: []
+  myRobots:
+  - robotId: 0
+    star: 0
+    level: 0
+    mazeEscapeCount: 0
+  - robotId: 1
+    star: 0
+    level: 0
+    mazeEscapeCount: 0
+  - robotId: 2
+    star: 0
+    level: 0
+    mazeEscapeCount: 0
+  - robotId: 3
+    star: 0
+    level: 0
+    mazeEscapeCount: 0
+  - robotId: 4
+    star: 0
+    level: 0
+    mazeEscapeCount: 0
+  - robotId: 5
+    star: 0
+    level: 0
+    mazeEscapeCount: 0
+  - robotId: 6
+    star: 0
+    level: 0
+    mazeEscapeCount: 0
+  - robotId: 7
+    star: 0
+    level: 0
+    mazeEscapeCount: 0
   robotPurchaseCounts: 000000000000000000000000000000000000000000000000000000000000000000000000
   maxAchievedStars: 000000000000000000000000000000000000000000000000000000000000000000000000
   claimedRewardStars: 000000000000000000000000000000000000000000000000000000000000000000000000
@@ -56998,10 +57032,10 @@ RectTransform:
   - {fileID: 1968542237}
   - {fileID: 1174950334}
   - {fileID: 139753088}
+  - {fileID: 1899565862}
   - {fileID: 712323536}
   - {fileID: 291338260}
   - {fileID: 518848275}
-  - {fileID: 1899565862}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
