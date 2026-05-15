@@ -15,8 +15,20 @@ public class SubTabButton : MonoBehaviour
 
     void Awake()
     {
-        myImage = GetComponent<Image>();
-        originalSprite = myImage.sprite;
+        InitImage();
+    }
+
+    // 🌟 추가됨: 이미지를 못 찾아서 에러가 나는 것을 방지하는 초기화 함수
+    private void InitImage()
+    {
+        if (myImage == null)
+        {
+            myImage = GetComponent<Image>();
+            if (myImage != null) 
+            {
+                originalSprite = myImage.sprite;
+            }
+        }
     }
 
     public void OnClickThisTab()
@@ -29,11 +41,19 @@ public class SubTabButton : MonoBehaviour
 
     public void ChangeToSelected() 
     { 
-        if(selectedSprite != null) myImage.sprite = selectedSprite; 
+        InitImage(); // 🌟 방어 코드: Awake보다 먼저 불렸더라도 여기서 안전하게 Image를 찾습니다.
+        if (myImage != null && selectedSprite != null) 
+        {
+            myImage.sprite = selectedSprite; 
+        }
     }
     
     public void ChangeToOriginal() 
     { 
-        if(originalSprite != null) myImage.sprite = originalSprite; 
+        InitImage(); // 🌟 방어 코드
+        if (myImage != null && originalSprite != null) 
+        {
+            myImage.sprite = originalSprite; 
+        }
     }
 }

@@ -53,6 +53,11 @@ public class DataManager : MonoBehaviour
     [Header("📊 상점 데이터")]
     public int[] robotPurchaseCounts = new int[9];
 
+    // 🌟 복구됨: 도감 보상 시스템을 위한 기록 배열
+    [Header("📖 도감 달성 데이터")]
+    public int[] maxAchievedStars = new int[9];   // 해당 로봇이 도달한 역대 최고 성급
+    public int[] claimedRewardStars = new int[9]; // 유저가 도감에서 마지막으로 수령한 성급 보상
+
     [System.Serializable]
     public class UpgradeStat
     {
@@ -92,7 +97,6 @@ public class DataManager : MonoBehaviour
         public AlgorithmType algo = AlgorithmType.AStar;
         public double purchasePrice = 1000;
         
-        // 🌟 수정됨: 구매 배율은 1.1 유지
         public float purchaseCostMultiplier = 1.1f; 
 
         public double baseGoldReward = 10; 
@@ -103,7 +107,6 @@ public class DataManager : MonoBehaviour
 
         public double baseLevelUpCost = 50; 
         
-        // 🌟 수정됨: 레벨업 배율은 1.05로 대폭 완화
         public float levelUpCostMultiplier = 1.05f; 
 
         public int baseMergeDiamondCost = 20; 
@@ -187,7 +190,6 @@ public class DataManager : MonoBehaviour
             labData[i].critChance = new UpgradeStat { maxLevel = 20, valuePerLevel = 0.01f };
             labData[i].critDamage = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.1f };
 
-            // 🌟 수정됨: 구매 배율은 1.1로 롤백, 레벨업 배율은 1.05로 수정!
             robotConfigs[i].purchaseCostMultiplier = 1.1f; 
             robotConfigs[i].levelUpCostMultiplier = 1.05f; 
             
@@ -215,10 +217,20 @@ public class DataManager : MonoBehaviour
             ApplyStarterBalance();
         }
 
+        // 🌟 복구됨: 도감 배열이 비어있으면 초기화
+        if (maxAchievedStars == null || maxAchievedStars.Length < 9) maxAchievedStars = new int[9];
+        if (claimedRewardStars == null || claimedRewardStars.Length < 9) claimedRewardStars = new int[9];
+
         if (myRobots.Count == 0)
         {
             myRobots.Add(new RobotInstance { robotId = 0, star = 1, level = 1 });
             myRobots.Add(new RobotInstance { robotId = 8, star = 1, level = 1 });
+        }
+
+        // 🌟 복구됨: 게임 시작 시 내 인벤토리를 확인하여 역대 최고 성급 갱신
+        foreach (var r in myRobots)
+        {
+            if (maxAchievedStars[r.robotId] < r.star) maxAchievedStars[r.robotId] = r.star;
         }
     }
 
@@ -320,11 +332,14 @@ public class DataManager : MonoBehaviour
             gold -= price; 
             myRobots.Add(new RobotInstance { robotId = robotId, star = 1, level = 1 }); 
             robotPurchaseCounts[robotId]++; 
+            
+            // 🌟 복구됨: 로봇 첫 구매 시 도감의 달성 성급을 1성으로 갱신
+            if (maxAchievedStars[robotId] < 1) maxAchievedStars[robotId] = 1;
+
             NotifyCurrencyChanged();
         } 
     }
 
-    // 🌟 핵심 로직: 성급이 증가할수록 비용 10% 상승, 레벨업 배율은 +0.005씩 증가!
     public double GetLevelUpCost(int robotId, int star, int level)
     {
         var config = robotConfigs[robotId];
@@ -349,7 +364,39 @@ public class DataManager : MonoBehaviour
         } 
     }
     
-    public void MergeRobots(RobotInstance r1, RobotInstance r2) { if (r1.robotId == 8 || r2.robotId == 8) return; if (r1.robotId == r2.robotId && r1.star == r2.star && r1.level == 10 && r2.level == 10) { r1.star++; r1.level = 1; myRobots.Remove(r2); } }
+    public void MergeRobots(RobotInstance r1, RobotInstance r2) 
+    { 
+        if (r1.robotId == 8 || r2.robotId == 8) return; 
+        if (r1.robotId == r2.robotId && r1.star == r2.star && r1.level == 10 && r2.level == 10) 
+        { 
+            r1.star++; 
+            r1.level = 1; 
+            myRobots.Remove(r2); 
+
+            // 🌟 복구됨: 합성 성공 시 도감 최고 성급 갱신
+            if (maxAchievedStars[r1.robotId] < r1.star) maxAchievedStars[r1.robotId] = r1.star;
+        } 
+    }
+
+    // 🌟 복구됨: 도감 다이아 보상 수령 (1성부터 순차적으로)
+    public void ClaimBookReward(int robotId)
+    {
+        if (robotId < 0 || robotId >= 8) return; // 오메가는 도감 보상 제외
+
+        int nextStarToClaim = claimedRewardStars[robotId] + 1; // 다음에 수령해야 할 성급
+
+        // 내가 달성한 최대 성급 이하라면 보상 수령 가능
+        if (nextStarToClaim <= maxAchievedStars[robotId])
+        {
+            // 공식: (50 + 로봇ID * 25) * 성급. 
+            // 알파(0)=50, 베타(1)=75, 감마(2)=100 ...
+            int baseReward = 50 + (robotId * 25);
+            int finalRewardAmount = baseReward * nextStarToClaim;
+
+            AddDiamond(finalRewardAmount); // 다이아 획득 시 NotifyCurrencyChanged() 자동 호출
+            claimedRewardStars[robotId] = nextStarToClaim; // 수령 기록 업데이트
+        }
+    }
 
     public double GetCurrentPurchasePrice(int robotId) { var config = robotConfigs[robotId]; return config.purchasePrice * Mathf.Pow(config.purchaseCostMultiplier, robotPurchaseCounts[robotId]); }
 
