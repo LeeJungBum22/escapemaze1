@@ -126,7 +126,9 @@ public class DataManager : MonoBehaviour
 
         public float starGoldMultiplier = 3.0f;  
         public float starSpeedMultiplier = 1.2f; 
-        public float starDelayMultiplier = 0.8f; 
+        public float starDelayMultiplier = 0.8f;
+        public float[] stageLimitTimes = new float[5] { 30f, 25f, 20f, 15f, 10f };
+        // 각 스테이지별 제한시간 (초)
     }
 
     [System.Serializable]
@@ -165,7 +167,9 @@ public class DataManager : MonoBehaviour
         public int robotId; 
         public int star = 1; 
         public int level = 1; 
-        public long mazeEscapeCount = 0; 
+        public long mazeEscapeCount = 0;
+        public int currentStage = 1;    // 현재 스테이지 (1~5)
+        public bool[] stageClear = new bool[5]; // 각 스테이지 클리어 여부
     }
 
     [ContextMenu("Apply Starter Balance (초기 밸런스 덮어쓰기)")]

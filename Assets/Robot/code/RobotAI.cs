@@ -14,21 +14,27 @@ public class RobotAI : MonoBehaviour
         anim = GetComponent<Animator>();
     }
 
-    // 🌟 수정됨: 도착 시 실행할 Action 추가
+    // 🌟 기존 호환용 (tileSize 하나로 가로세로 동일)
     public void MoveToPath(List<Node> newPath, float tileSize, Vector2 offset, System.Action onReachDestination)
+    {
+        MoveToPath(newPath, tileSize, tileSize, offset, onReachDestination);
+    }
+
+    // 🌟 가로/세로 타일 간격 분리 버전
+    public void MoveToPath(List<Node> newPath, float tileSizeX, float tileSizeY, Vector2 offset, System.Action onReachDestination)
     {
         path = newPath;
         pathIndex = 0;
         StopAllCoroutines();
-        StartCoroutine(FollowPath(tileSize, offset, onReachDestination));
+        StartCoroutine(FollowPath(tileSizeX, tileSizeY, offset, onReachDestination));
     }
 
-    IEnumerator FollowPath(float tileSize, Vector2 offset, System.Action onReachDestination)
+    IEnumerator FollowPath(float tileSizeX, float tileSizeY, Vector2 offset, System.Action onReachDestination)
     {
         while (pathIndex < path.Count)
         {
-            float targetX = (path[pathIndex].gridX * tileSize) - offset.x;
-            float targetY = -(path[pathIndex].gridY * tileSize) + offset.y;
+            float targetX = (path[pathIndex].gridX * tileSizeX) - offset.x;
+            float targetY = -(path[pathIndex].gridY * tileSizeY) + offset.y;
             Vector3 targetPos = transform.parent.position + new Vector3(targetX, targetY, 0);
 
             Vector3 moveDir = (targetPos - transform.position).normalized;
@@ -46,8 +52,7 @@ public class RobotAI : MonoBehaviour
 
             pathIndex++;
         }
-        
-        // 🌟 도착 완료 시 콜백 실행!
+
         onReachDestination?.Invoke();
     }
 }
