@@ -55,7 +55,14 @@ public class DataManager : MonoBehaviour
 
     [Header("📖 도감 달성 데이터")]
     public int[] maxAchievedStars = new int[9];   
-    public int[] claimedRewardStars = new int[9]; 
+    public int[] claimedRewardStars = new int[9];
+
+    [Header("🧠 오메가 강화학습")]
+    public int omegaTrainLevel = 0;          // 현재 강화 레벨 (0강 = 미학습)
+    public int omegaMaxTrainLevel = 20;      // 최대 강화 레벨
+    public int omegaTrainBaseCost = 100;     // 1강 비용 (다이아)
+    public int omegaTrainCostIncrement = 50; // 강화할 때마다 비용 증가량
+    public int omegaEpisodesPerTrain = 100;  // 강화 1회당 추가 학습 에피소드 수
 
     // 🌟 추가됨: 퀘스트 추적용 누적 데이터
     [Header("📜 퀘스트 누적 데이터")]
@@ -336,6 +343,38 @@ public class DataManager : MonoBehaviour
             lab.isDiagonalUnlocked = true;
             NotifyCurrencyChanged();
         }
+    }
+
+    // 🌟 오메가 강화학습 비용
+    public int GetOmegaTrainCost() => omegaTrainBaseCost + (omegaTrainLevel * omegaTrainCostIncrement);
+
+    // 🌟 오메가 최대 강화 도달 여부
+    public bool IsOmegaMaxTrained() => omegaTrainLevel >= omegaMaxTrainLevel;
+
+    // 🌟 오메가 강화학습 실행 (다이아 차감 + 5스테이지 누적 학습 + 레벨업)
+    public bool TrainOmega()
+    {
+        if (IsOmegaMaxTrained()) return false;
+
+        int cost = GetOmegaTrainCost();
+        if (diamond < cost) return false;
+
+        if (QTableManager.Instance == null)
+        {
+            Debug.LogWarning("[DataManager] QTableManager가 씬에 없습니다!");
+            return false;
+        }
+
+        // 강화 레벨이 오를수록 탐험률(epsilon)을 낮춰 최적 경로에 집중
+        double epsilon = Mathf.Max(0.05f, 0.5f - omegaTrainLevel * 0.03f);
+
+        bool success = QTableManager.Instance.TrainOmegaAllStages(omegaEpisodesPerTrain, epsilon);
+        if (!success) return false;
+
+        diamond -= cost;
+        omegaTrainLevel++;
+        NotifyCurrencyChanged();
+        return true;
     }
 
     public UpgradeStat GetGoldUpgradeStatById(int id) { switch (id) { case 0: return goldUpgrades.moveSpeed; case 1: return goldUpgrades.searchDelay; case 2: return goldUpgrades.mazeRegen; case 3: return goldUpgrades.goldEarned; case 4: return goldUpgrades.critChance; case 5: return goldUpgrades.critDamage; case 6: return goldUpgrades.diaDropChance; default: return null; } }

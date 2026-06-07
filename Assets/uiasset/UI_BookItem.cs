@@ -5,8 +5,8 @@ using TMPro;
 public class UI_BookItem : MonoBehaviour
 {
     [Header("설정")]
-    public int robotId; // 0:알파 ~ 7:세타
-    
+    public int robotId; // 0:알파 ~ 7:세타, 8:오메가(강화학습)
+
     [Header("UI 연결 (보상 관련만 연결)")]
     public Button rewardButton;
     public TextMeshProUGUI rewardContentText; // "?성 해금 \n 보상 : 50"
@@ -15,7 +15,7 @@ public class UI_BookItem : MonoBehaviour
     {
         if (DataManager.Instance != null)
             DataManager.Instance.OnCurrencyChanged += RefreshUI;
-        
+
         RefreshUI();
     }
 
@@ -28,7 +28,17 @@ public class UI_BookItem : MonoBehaviour
     public void RefreshUI()
     {
         var dm = DataManager.Instance;
-        if (dm == null || robotId >= 8) return; 
+        if (dm == null) return;
+
+        // 🌟 오메가(8번): 강화학습 분기
+        if (robotId == 8)
+        {
+            RefreshOmegaTrain(dm);
+            return;
+        }
+
+        // ─── 기존 0~7번 도감 보상 시스템 ───
+        if (robotId > 8) return;
 
         int nextStarToClaim = dm.claimedRewardStars[robotId] + 1;
         int currentMaxStar = dm.maxAchievedStars[robotId];
@@ -39,27 +49,53 @@ public class UI_BookItem : MonoBehaviour
             int baseReward = 50 + (robotId * 25);
             int rewardAmount = baseReward * nextStarToClaim;
 
-            // 텍스트 보이기 및 갱신
             rewardContentText.gameObject.SetActive(true);
             rewardContentText.text = $"{nextStarToClaim}성 해금\n보상 : <color=#FF3333>{rewardAmount}</color>";
-            
-            // 버튼 활성화
+
             rewardButton.interactable = true;
         }
         else // 🌟 보상을 모두 받았거나 조건 미달인 상태
         {
-            // 요청하신 대로 글자를 가리고 버튼 비활성화
             rewardContentText.gameObject.SetActive(false);
             rewardButton.interactable = false;
         }
     }
 
+    // 🌟 오메가 강화학습 UI 갱신
+    void RefreshOmegaTrain(DataManager dm)
+    {
+        rewardContentText.gameObject.SetActive(true);
+
+        if (dm.IsOmegaMaxTrained())
+        {
+            rewardContentText.text = $"강화학습 {dm.omegaTrainLevel}강\n<color=#FFD700>MAX</color>";
+            rewardButton.interactable = false;
+        }
+        else
+        {
+            int cost = dm.GetOmegaTrainCost();
+            rewardContentText.text = $"강화학습 {dm.omegaTrainLevel}강\n💎 <color=#FF3333>{cost}</color>";
+            rewardButton.interactable = dm.diamond >= cost;
+        }
+    }
+
     public void OnClickReward()
     {
-        // 1. 데이터 상에서 보상 수령 처리
-        DataManager.Instance.ClaimBookReward(robotId);
+        var dm = DataManager.Instance;
+        if (dm == null) return;
 
-        // 2. 🌟 중요: 수령 직후 즉시 UI 리셋 (버튼 비활성화 또는 다음 성급 보상 노출)
+        // 🌟 오메가: 다이아 차감 + 강화학습 실행
+        if (robotId == 8)
+        {
+            bool success = dm.TrainOmega();
+            if (!success)
+                Debug.Log("[BookItem] 오메가 강화 실패 (다이아 부족 또는 MAX)");
+            RefreshUI();
+            return;
+        }
+
+        // ─── 기존 도감 보상 수령 ───
+        dm.ClaimBookReward(robotId);
         RefreshUI();
     }
 }

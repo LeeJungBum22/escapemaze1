@@ -279,6 +279,14 @@ public class StageMap : MonoBehaviour
         robot.transform.parent = mazeContainer;
         robot.GetComponent<SpriteRenderer>().sortingOrder = 15;
 
+        // 🌟 오메가(robotId 8): Q-Learning 사전학습 경로 사용
+        if (bot.robotId == 8)
+        {
+            StartRobotEscape_QLearning(robot, bot, onSearchComplete, onComplete);
+            return;
+        }
+
+        // 기존 로봇: Pathfinding 알고리즘 사용
         Pathfinding pathfinder = mazeWorldOrigin.GetComponent<Pathfinding>();
         if (pathfinder != null)
         {
@@ -286,9 +294,8 @@ public class StageMap : MonoBehaviour
             pathfinder.selectedAlgorithm = config.algo;
             pathfinder.searchDelay = DataManager.Instance.GetFinalSearchDelay(bot);
             pathfinder.currentRobotId = bot.robotId;
-            pathfinder.markerSortingOrder = 13; // 🌟 스테이지 마커는 타일 위에 보이게
+            pathfinder.markerSortingOrder = 13;
 
-            // 🌟 가로/세로 타일 간격 분리하여 전달
             pathfinder.StartVisualSearch(maze, startPos, endPos, stepX, stepY,
                 new Vector2(offsetX, offsetY), delegate (List<Node> path)
                 {
@@ -310,6 +317,68 @@ public class StageMap : MonoBehaviour
                         onComplete?.Invoke();
                     }
                 });
+        }
+    }
+
+    // 🌟 오메가 전용: Q-Learning 경로로 이동
+    void StartRobotEscape_QLearning(GameObject robot, DataManager.RobotInstance bot,
+        System.Action onSearchComplete, System.Action onComplete)
+    {
+        int stageIndex = bot.currentStage - 1;
+
+        // Q테이블에서 사전학습된 경로 가져오기
+        List<Node> path = QTableManager.Instance?.GetTrainedPath(bot.robotId, stageIndex);
+
+        if (path == null || path.Count < 2)
+        {
+            Debug.LogWarning("[StageMap] 오메가 Q-Learning 학습 데이터 없음! 상점에서 먼저 학습하세요.");
+            onSearchComplete?.Invoke();
+            onComplete?.Invoke();
+            return;
+        }
+
+        // 🌟 경로 마커 시각화 (탐색 과정 없이 결과 경로만 표시)
+        StartCoroutine(ShowQLearningPath(robot, bot, path, onSearchComplete, onComplete));
+    }
+
+    // 🌟 Q-Learning 경로를 마커로 표시 후 로봇 이동
+    IEnumerator ShowQLearningPath(GameObject robot, DataManager.RobotInstance bot,
+        List<Node> path, System.Action onSearchComplete, System.Action onComplete)
+    {
+        // 경로 마커를 하나씩 표시 (시각적 연출)
+        float markerDelay = DataManager.Instance.GetFinalSearchDelay(bot);
+        foreach (Node node in path)
+        {
+            Vector3 markerPos = GetWorldPos(node.gridX, node.gridY);
+            GameObject marker = Instantiate(markerPrefab, markerPos, Quaternion.identity);
+            marker.transform.localScale = finalScale;
+            marker.transform.parent = mazeContainer;
+
+            SpriteRenderer sr = marker.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                sr.sortingOrder = 13;
+                sr.color = new Color(0.5f, 0f, 1f, 0.6f); // 보라색 (Q-Learning 고유 색상)
+            }
+
+            if (markerDelay > 0.001f)
+                yield return new WaitForSeconds(markerDelay);
+        }
+
+        onSearchComplete?.Invoke();
+
+        if (robot == null) { onComplete?.Invoke(); yield break; }
+
+        // 로봇 이동
+        RobotAI ai = robot.GetComponent<RobotAI>();
+        if (ai != null)
+        {
+            ai.moveSpeed = DataManager.Instance.GetFinalMoveSpeed(bot);
+            ai.MoveToPath(path, stepX, stepY, new Vector2(offsetX, offsetY), onComplete);
+        }
+        else
+        {
+            onComplete?.Invoke();
         }
     }
 
