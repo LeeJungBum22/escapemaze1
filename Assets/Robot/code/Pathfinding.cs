@@ -10,15 +10,20 @@ public class Pathfinding : MonoBehaviour
     [Header("Algorithm Settings")]
     public AlgorithmType selectedAlgorithm = AlgorithmType.AStar;
     public bool allowDiagonal = true; // 에디터 기본 테스트용
-    
+
     // 🌟 추가됨: 현재 미로를 탐색 중인 로봇의 ID (-1이면 기본값 사용)
     [HideInInspector] public int currentRobotId = -1;
 
     [Header("Visualization Settings")]
     public GameObject searchMarkerPrefab;
     public float searchDelay = 0.02f;
-    
+
+    // 🌟 추가: 마커 sortingOrder (기본 2, StageMap에서 13으로 설정)
+    [HideInInspector] public int markerSortingOrder = 2;
+
     private float tileSize;
+    private float tileSizeX; // 🌟 가로 타일 간격 (기본 = tileSize)
+    private float tileSizeY; // 🌟 세로 타일 간격 (기본 = tileSize)
     private Vector2 offset;
     private List<GameObject> visualMarkers = new List<GameObject>();
 
@@ -43,11 +48,19 @@ public class Pathfinding : MonoBehaviour
 
     public void StartVisualSearch(int[,] maze, Vector2Int startPos, Vector2Int targetPos, float tSize, Vector2 off, Action<List<Node>> onComplete)
     {
-        tileSize = tSize;
+        StartVisualSearch(maze, startPos, targetPos, tSize, tSize, off, onComplete);
+    }
+
+    // 🌟 가로/세로 타일 간격 분리 버전
+    public void StartVisualSearch(int[,] maze, Vector2Int startPos, Vector2Int targetPos, float tSizeX, float tSizeY, Vector2 off, Action<List<Node>> onComplete)
+    {
+        tileSize = tSizeX; // 호환용
+        tileSizeX = tSizeX;
+        tileSizeY = tSizeY;
         offset = off;
-        ClearMarkers(); 
-        
-        foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
+        ClearMarkers();
+
+        foreach (var marker in visualMarkers) if (marker != null) Destroy(marker);
         visualMarkers.Clear();
 
         switch (selectedAlgorithm)
@@ -73,7 +86,7 @@ public class Pathfinding : MonoBehaviour
 
     public void ClearMarkers()
     {
-        foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
+        foreach (var marker in visualMarkers) if (marker != null) Destroy(marker);
         visualMarkers.Clear();
     }
 
@@ -139,7 +152,7 @@ public class Pathfinding : MonoBehaviour
                 else
                 {
                     int moveCost = currentNode.gCost + GetDistance(currentNode, neighbor);
-                    if (selectedAlgorithm == AlgorithmType.BestFirstSearch) moveCost = 0; 
+                    if (selectedAlgorithm == AlgorithmType.BestFirstSearch) moveCost = 0;
 
                     if (moveCost < neighbor.gCost || !openList.Contains(neighbor))
                     {
@@ -179,7 +192,7 @@ public class Pathfinding : MonoBehaviour
             foreach (Node neighbor in GetNeighbors(currentNode, nodes, maze.GetLength(1), maze.GetLength(0)))
             {
                 if (!neighbor.walkable || visited.Contains(neighbor)) continue;
-                
+
                 int h = GetDistance(neighbor, targetNode);
                 if (h < minH)
                 {
@@ -220,15 +233,16 @@ public class Pathfinding : MonoBehaviour
 
         while (!pathFound && bound < 1000)
         {
-            foreach (var marker in visualMarkers) if(marker != null) Destroy(marker);
+            foreach (var marker in visualMarkers) if (marker != null) Destroy(marker);
             visualMarkers.Clear();
-            yield return new WaitForSeconds(0.2f); 
+            yield return new WaitForSeconds(0.2f);
 
             int minOverBound = int.MaxValue;
             Stack<IDAState> stack = new Stack<IDAState>();
             HashSet<Node> currentPath = new HashSet<Node>();
 
-            stack.Push(new IDAState {
+            stack.Push(new IDAState
+            {
                 node = startNode,
                 gCost = 0,
                 neighbors = GetNeighbors(startNode, nodes, maze.GetLength(1), maze.GetLength(0)),
@@ -266,7 +280,8 @@ public class Pathfinding : MonoBehaviour
                 if (nextNeighbor != null)
                 {
                     nextNeighbor.parent = current.node;
-                    stack.Push(new IDAState {
+                    stack.Push(new IDAState
+                    {
                         node = nextNeighbor,
                         gCost = current.gCost + GetDistance(current.node, nextNeighbor),
                         neighbors = GetNeighbors(nextNeighbor, nodes, maze.GetLength(1), maze.GetLength(0)),
@@ -277,7 +292,7 @@ public class Pathfinding : MonoBehaviour
                     if (nextNeighbor != startNode && nextNeighbor != targetNode)
                     {
                         CreateVisualMarker(nextNeighbor);
-                        yield return new WaitForSeconds(searchDelay); 
+                        yield return new WaitForSeconds(searchDelay);
                     }
                 }
                 else
@@ -289,7 +304,7 @@ public class Pathfinding : MonoBehaviour
 
             if (pathFound) break;
             if (minOverBound == int.MaxValue) break;
-            
+
             bound = minOverBound;
         }
 
@@ -302,13 +317,13 @@ public class Pathfinding : MonoBehaviour
     IEnumerator JPSCoroutine(int[,] maze, Vector2Int startPos, Vector2Int targetPos, Action<List<Node>> onComplete)
     {
         bool isOrthogonal = (selectedAlgorithm == AlgorithmType.OrthogonalJumpPointSearch);
-        
+
         // 🌟 수정됨: 대각선 해금이 안 되어있다면 JPS도 강제로 직교 모드(OJPS)로만 동작하게 강제
         if (!CheckDiagonalAllowed())
         {
             isOrthogonal = true;
         }
-        
+
         Node[,] nodes = CreateNodes(maze);
         List<Node> openList = new List<Node>();
         HashSet<Node> closedList = new HashSet<Node>();
@@ -354,7 +369,7 @@ public class Pathfinding : MonoBehaviour
                         jumpNode.hCost = GetDistance(jumpNode, targetNode);
                         jumpNode.parent = currentNode;
                         if (!openList.Contains(jumpNode)) openList.Add(jumpNode);
-                        
+
                         CreateVisualMarker(jumpNode);
                         yield return new WaitForSeconds(searchDelay);
                     }
@@ -376,21 +391,21 @@ public class Pathfinding : MonoBehaviour
 
         if (nextNode == target) return nextNode;
 
-        if (dx != 0 && dy != 0 && !isOrthogonal) 
+        if (dx != 0 && dy != 0 && !isOrthogonal)
         {
             if ((maze[y, x + dx] == 1 && maze[ny, nx] != 1) || (maze[y + dy, x] == 1 && maze[ny, nx] != 1))
                 return nextNode;
             if (Jump(nx, ny, dx, 0, maze, nodes, target, isOrthogonal) != null || Jump(nx, ny, 0, dy, maze, nodes, target, isOrthogonal) != null)
                 return nextNode;
         }
-        else 
+        else
         {
-            if (dx != 0) 
+            if (dx != 0)
             {
                 if ((ny + 1 < sizeY && maze[ny + 1, x] == 1 && maze[ny + 1, nx] != 1) ||
                     (ny - 1 >= 0 && maze[ny - 1, x] == 1 && maze[ny - 1, nx] != 1)) return nextNode;
             }
-            else if (dy != 0) 
+            else if (dy != 0)
             {
                 if ((nx + 1 < sizeX && maze[y, nx + 1] == 1 && maze[ny, nx + 1] != 1) ||
                     (nx - 1 >= 0 && maze[y, nx - 1] == 1 && maze[ny, nx - 1] != 1)) return nextNode;
@@ -421,8 +436,8 @@ public class Pathfinding : MonoBehaviour
     List<Node> GetNeighbors(Node node, Node[,] nodes, int sizeX, int sizeY)
     {
         // 🌟 수정됨: 대각선 체크 함수 사용
-        bool canDiagonal = CheckDiagonalAllowed(); 
-        
+        bool canDiagonal = CheckDiagonalAllowed();
+
         List<Node> neighbors = new List<Node>();
         for (int x = -1; x <= 1; x++)
             for (int y = -1; y <= 1; y++)
@@ -438,11 +453,11 @@ public class Pathfinding : MonoBehaviour
     int GetDistance(Node a, Node b)
     {
         // 🌟 수정됨: 대각선 체크 함수 사용
-        bool canDiagonal = CheckDiagonalAllowed(); 
-        
+        bool canDiagonal = CheckDiagonalAllowed();
+
         int dstX = Mathf.Abs(a.gridX - b.gridX);
         int dstY = Mathf.Abs(a.gridY - b.gridY);
-        
+
         if (canDiagonal) return dstX > dstY ? 14 * dstY + 10 * (dstX - dstY) : 14 * dstX + 10 * (dstY - dstX);
         else return 10 * (dstX + dstY);
     }
@@ -460,16 +475,18 @@ public class Pathfinding : MonoBehaviour
         return path;
     }
 
+    // 🌟 수정: tileSizeX/Y 분리 + markerSortingOrder 적용
     void CreateVisualMarker(Node node)
     {
-        float targetX = (node.gridX * tileSize) - offset.x;
-        float targetY = -(node.gridY * tileSize) + offset.y;
-        
+        float targetX = (node.gridX * tileSizeX) - offset.x;
+        float targetY = -(node.gridY * tileSizeY) + offset.y;
+
         Vector3 pos = transform.position + new Vector3(targetX, targetY, 0);
 
         GameObject marker = Instantiate(searchMarkerPrefab, pos, Quaternion.identity);
         marker.transform.parent = this.transform;
-        marker.transform.localScale = Vector3.one * (tileSize * 0.9f);
+        marker.transform.localScale = new Vector3(tileSizeX * 0.9f, tileSizeY * 0.9f, 1f);
+        marker.GetComponent<SpriteRenderer>().sortingOrder = markerSortingOrder;
         visualMarkers.Add(marker);
     }
 }

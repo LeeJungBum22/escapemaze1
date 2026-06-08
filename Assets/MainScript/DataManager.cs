@@ -53,10 +53,29 @@ public class DataManager : MonoBehaviour
     [Header("📊 상점 데이터")]
     public int[] robotPurchaseCounts = new int[9];
 
-    // 🌟 복구됨: 도감 보상 시스템을 위한 기록 배열
     [Header("📖 도감 달성 데이터")]
-    public int[] maxAchievedStars = new int[9];   // 해당 로봇이 도달한 역대 최고 성급
-    public int[] claimedRewardStars = new int[9]; // 유저가 도감에서 마지막으로 수령한 성급 보상
+    public int[] maxAchievedStars = new int[9];   
+    public int[] claimedRewardStars = new int[9];
+
+    [Header("🧠 오메가 강화학습")]
+    public int omegaTrainLevel = 0;          // 현재 강화 레벨 (0강 = 미학습)
+    public int omegaMaxTrainLevel = 20;      // 최대 강화 레벨
+    public int omegaTrainBaseCost = 100;     // 1강 비용 (다이아)
+    public int omegaTrainCostIncrement = 50; // 강화할 때마다 비용 증가량
+    public int omegaEpisodesPerTrain = 100;  // 강화 1회당 추가 학습 에피소드 수
+
+    // 🌟 추가됨: 퀘스트 추적용 누적 데이터
+    [Header("📜 퀘스트 누적 데이터")]
+    public int totalGlobalUpgradeCount = 0;
+    public int totalMergeCount = 0;
+    public int totalDiamondDropCount = 0;
+
+    // 🌟 추가됨: 퀘스트 수령 레벨 (몇 번 보상을 받았는지 기록)
+    public int[] questLevel_Escape = new int[8]; 
+    public int questLevel_Purchase = 0;
+    public int questLevel_GlobalUpgrade = 0;
+    public int questLevel_Merge = 0;
+    public int questLevel_DiamondDrop = 0;
 
     [System.Serializable]
     public class UpgradeStat
@@ -114,7 +133,9 @@ public class DataManager : MonoBehaviour
 
         public float starGoldMultiplier = 3.0f;  
         public float starSpeedMultiplier = 1.2f; 
-        public float starDelayMultiplier = 0.8f; 
+        public float starDelayMultiplier = 0.8f;
+        public float[] stageLimitTimes = new float[5] { 30f, 25f, 20f, 15f, 10f };
+        // 각 스테이지별 제한시간 (초)
     }
 
     [System.Serializable]
@@ -153,7 +174,9 @@ public class DataManager : MonoBehaviour
         public int robotId; 
         public int star = 1; 
         public int level = 1; 
-        public long mazeEscapeCount = 0; 
+        public long mazeEscapeCount = 0;
+        public int currentStage = 1;    // 현재 스테이지 (1~5)
+        public bool[] stageClear = new bool[5]; // 각 스테이지 클리어 여부
     }
 
     [ContextMenu("Apply Starter Balance (초기 밸런스 덮어쓰기)")]
@@ -217,9 +240,9 @@ public class DataManager : MonoBehaviour
             ApplyStarterBalance();
         }
 
-        // 🌟 복구됨: 도감 배열이 비어있으면 초기화
         if (maxAchievedStars == null || maxAchievedStars.Length < 9) maxAchievedStars = new int[9];
         if (claimedRewardStars == null || claimedRewardStars.Length < 9) claimedRewardStars = new int[9];
+        if (questLevel_Escape == null || questLevel_Escape.Length < 8) questLevel_Escape = new int[8];
 
         if (myRobots.Count == 0)
         {
@@ -227,7 +250,6 @@ public class DataManager : MonoBehaviour
             myRobots.Add(new RobotInstance { robotId = 8, star = 1, level = 1 });
         }
 
-        // 🌟 복구됨: 게임 시작 시 내 인벤토리를 확인하여 역대 최고 성급 갱신
         foreach (var r in myRobots)
         {
             if (maxAchievedStars[r.robotId] < r.star) maxAchievedStars[r.robotId] = r.star;
@@ -261,6 +283,7 @@ public class DataManager : MonoBehaviour
         { 
             gold -= cost; 
             target.level++; 
+            totalGlobalUpgradeCount++; // 🌟 퀘스트 추적
             NotifyCurrencyChanged(); 
         }
     }
@@ -275,6 +298,7 @@ public class DataManager : MonoBehaviour
         { 
             diamond -= (int)cost; 
             target.level++; 
+            totalGlobalUpgradeCount++; // 🌟 퀘스트 추적
             NotifyCurrencyChanged(); 
         }
     }
@@ -321,6 +345,38 @@ public class DataManager : MonoBehaviour
         }
     }
 
+    // 🌟 오메가 강화학습 비용
+    public int GetOmegaTrainCost() => omegaTrainBaseCost + (omegaTrainLevel * omegaTrainCostIncrement);
+
+    // 🌟 오메가 최대 강화 도달 여부
+    public bool IsOmegaMaxTrained() => omegaTrainLevel >= omegaMaxTrainLevel;
+
+    // 🌟 오메가 강화학습 실행 (다이아 차감 + 5스테이지 누적 학습 + 레벨업)
+    public bool TrainOmega()
+    {
+        if (IsOmegaMaxTrained()) return false;
+
+        int cost = GetOmegaTrainCost();
+        if (diamond < cost) return false;
+
+        if (QTableManager.Instance == null)
+        {
+            Debug.LogWarning("[DataManager] QTableManager가 씬에 없습니다!");
+            return false;
+        }
+
+        // 강화 레벨이 오를수록 탐험률(epsilon)을 낮춰 최적 경로에 집중
+        double epsilon = Mathf.Max(0.05f, 0.5f - omegaTrainLevel * 0.03f);
+
+        bool success = QTableManager.Instance.TrainOmegaAllStages(omegaEpisodesPerTrain, epsilon);
+        if (!success) return false;
+
+        diamond -= cost;
+        omegaTrainLevel++;
+        NotifyCurrencyChanged();
+        return true;
+    }
+
     public UpgradeStat GetGoldUpgradeStatById(int id) { switch (id) { case 0: return goldUpgrades.moveSpeed; case 1: return goldUpgrades.searchDelay; case 2: return goldUpgrades.mazeRegen; case 3: return goldUpgrades.goldEarned; case 4: return goldUpgrades.critChance; case 5: return goldUpgrades.critDamage; case 6: return goldUpgrades.diaDropChance; default: return null; } }
     public UpgradeStat GetDiaUpgradeStatById(int id) { switch (id) { case 0: return diaUpgrades.moveSpeed; case 1: return diaUpgrades.searchDelay; case 2: return diaUpgrades.mazeRegen; case 3: return diaUpgrades.goldEarned; case 4: return diaUpgrades.critChance; case 5: return diaUpgrades.critDamage; case 6: return diaUpgrades.diaDropAmount; default: return null; } }
 
@@ -333,7 +389,6 @@ public class DataManager : MonoBehaviour
             myRobots.Add(new RobotInstance { robotId = robotId, star = 1, level = 1 }); 
             robotPurchaseCounts[robotId]++; 
             
-            // 🌟 복구됨: 로봇 첫 구매 시 도감의 달성 성급을 1성으로 갱신
             if (maxAchievedStars[robotId] < 1) maxAchievedStars[robotId] = 1;
 
             NotifyCurrencyChanged();
@@ -371,31 +426,51 @@ public class DataManager : MonoBehaviour
         { 
             r1.star++; 
             r1.level = 1; 
+
+            r1.mazeEscapeCount += r2.mazeEscapeCount;
+
             myRobots.Remove(r2); 
 
-            // 🌟 복구됨: 합성 성공 시 도감 최고 성급 갱신
             if (maxAchievedStars[r1.robotId] < r1.star) maxAchievedStars[r1.robotId] = r1.star;
+            totalMergeCount++; // 🌟 퀘스트 추적
         } 
     }
 
-    // 🌟 복구됨: 도감 다이아 보상 수령 (1성부터 순차적으로)
     public void ClaimBookReward(int robotId)
     {
-        if (robotId < 0 || robotId >= 8) return; // 오메가는 도감 보상 제외
+        if (robotId < 0 || robotId >= 8) return; 
 
-        int nextStarToClaim = claimedRewardStars[robotId] + 1; // 다음에 수령해야 할 성급
+        int nextStarToClaim = claimedRewardStars[robotId] + 1; 
 
-        // 내가 달성한 최대 성급 이하라면 보상 수령 가능
         if (nextStarToClaim <= maxAchievedStars[robotId])
         {
-            // 공식: (50 + 로봇ID * 25) * 성급. 
-            // 알파(0)=50, 베타(1)=75, 감마(2)=100 ...
             int baseReward = 50 + (robotId * 25);
             int finalRewardAmount = baseReward * nextStarToClaim;
 
-            AddDiamond(finalRewardAmount); // 다이아 획득 시 NotifyCurrencyChanged() 자동 호출
-            claimedRewardStars[robotId] = nextStarToClaim; // 수령 기록 업데이트
+            AddDiamond(finalRewardAmount); 
+            claimedRewardStars[robotId] = nextStarToClaim; 
         }
+    }
+
+    public long GetTotalEscapeCount(int robotId)
+    {
+        long totalEscapeCount = 0;
+        foreach (var r in myRobots)
+        {
+            if (r.robotId == robotId)
+            {
+                totalEscapeCount += r.mazeEscapeCount;
+            }
+        }
+        return totalEscapeCount;
+    }
+
+    // 🌟 추가됨: 모든 로봇의 총 구매 횟수를 합산
+    public int GetTotalRobotPurchaseCount()
+    {
+        int total = 0;
+        for (int i = 0; i < 9; i++) total += robotPurchaseCounts[i];
+        return total;
     }
 
     public double GetCurrentPurchasePrice(int robotId) { var config = robotConfigs[robotId]; return config.purchasePrice * Mathf.Pow(config.purchaseCostMultiplier, robotPurchaseCounts[robotId]); }
@@ -432,6 +507,17 @@ public class DataManager : MonoBehaviour
         return finalReward;
     }
 
-    public int CheckDiamondDropAmount() { float finalChance = GetTotalDiaChance(); if (UnityEngine.Random.value < finalChance) { int finalAmount = GetTotalDiaAmount(); AddDiamond(finalAmount); return finalAmount; } return 0; }
+    public int CheckDiamondDropAmount() 
+    { 
+        float finalChance = GetTotalDiaChance(); 
+        if (UnityEngine.Random.value < finalChance) 
+        { 
+            int finalAmount = GetTotalDiaAmount(); 
+            AddDiamond(finalAmount); 
+            totalDiamondDropCount++; // 🌟 퀘스트 추적
+            return finalAmount; 
+        } 
+        return 0; 
+    }
     public double CalculateCombatPower() { double totalPower = 0; foreach (var robot in myRobots) { float sWeight = GetFinalMoveSpeed(robot) * 100f; float dWeight = (1.0f / GetFinalSearchDelay(robot)) * 50f; bool dummyCrit; double gWeight = GetFinalGoldReward(robot, out dummyCrit) * 10f; totalPower += (sWeight + dWeight + gWeight); } return totalPower; }
 }
