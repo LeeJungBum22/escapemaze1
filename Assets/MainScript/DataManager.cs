@@ -245,11 +245,19 @@ public class DataManager : MonoBehaviour
         if (claimedRewardStars == null || claimedRewardStars.Length < 9) claimedRewardStars = new int[9];
         if (questLevel_Escape == null || questLevel_Escape.Length < 8) questLevel_Escape = new int[8];
 
-        if (myRobots.Count == 0)
+        // 🌟 알파(0)와 오메가(8)는 기본 보유 로봇 — 목록에 없으면 항상 추가.
+        //    (Inspector에 myRobots가 미리 채워져 있어도 Count != 0 때문에
+        //     빠지는 일이 없도록, "비었을 때만"이 아니라 "없으면 추가"로 보장)
+        bool hasAlpha = false, hasOmega = false;
+        foreach (var r in myRobots)
         {
-            myRobots.Add(new RobotInstance { robotId = 0, star = 1, level = 1 });
-            myRobots.Add(new RobotInstance { robotId = 8, star = 1, level = 1 });
+            if (r.robotId == 0) hasAlpha = true;
+            if (r.robotId == 8) hasOmega = true;
         }
+        if (!hasAlpha)
+            myRobots.Add(new RobotInstance { robotId = 0, star = 1, level = 1 });
+        if (!hasOmega)
+            myRobots.Add(new RobotInstance { robotId = 8, star = 1, level = 1 });
 
         foreach (var r in myRobots)
         {
