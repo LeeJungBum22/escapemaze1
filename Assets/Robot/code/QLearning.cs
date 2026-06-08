@@ -102,14 +102,14 @@ public class QLearning
             GetNextXY(x, y, action, out int nx, out int ny);
             int nextState = ToState(nx, ny);
 
+            double reward = GetReward(maze, nx, ny, x, y);
+            Learn(state, action, nextState, reward);
+
             // 벽이면 제자리 유지
             if (maze[ny, nx] == 1)
             {
                 nextState = state;
             }
-
-            double reward = GetReward(maze, nx, ny, x, y);
-            Learn(state, action, nextState, reward);
 
             // 목적지 도달 시 에피소드 종료
             if (maze[ny, nx] == 4)
