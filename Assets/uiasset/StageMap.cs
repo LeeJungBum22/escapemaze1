@@ -34,7 +34,7 @@ public class StageMap : MonoBehaviour
     [Range(0.01f, 1.8f)] public float displayScale = 0.8f;
 
     [Header("🌟 수동 위치 및 크기 조절")]
-    public float manualOffsetX = -0.5f;
+    public float manualOffsetX = -10f;
     public float manualScaleX = 0.05f;
 
     [Header("UI")]
