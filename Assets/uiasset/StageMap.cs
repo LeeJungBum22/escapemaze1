@@ -156,7 +156,7 @@ public class StageMap : MonoBehaviour
 
         StartRobotEscape(currentRobot,
             onSearchComplete: () => { },
-            onComplete: () => { isEscaped = true; });
+            onComplete: (reachedGoal) => { if (reachedGoal) isEscaped = true; else isFailed = true; });
 
         // 🌟 탐색 + 이동 전체에 제한시간 적용
         while (!isEscaped && !isFailed)
@@ -263,14 +263,14 @@ public class StageMap : MonoBehaviour
         }
     }
 
-    void StartRobotEscape(DataManager.RobotInstance bot, System.Action onSearchComplete, System.Action onComplete)
+    void StartRobotEscape(DataManager.RobotInstance bot, System.Action onSearchComplete, System.Action<bool> onComplete)
     {
         GameObject prefab = robotPrefabs[bot.robotId];
         if (prefab == null)
         {
             Debug.LogWarning($"[StageMap] robotPrefabs[{bot.robotId}] 가 비어있어요!");
             onSearchComplete?.Invoke();
-            onComplete?.Invoke();
+            onComplete?.Invoke(false);
             return;
         }
 
@@ -301,28 +301,42 @@ public class StageMap : MonoBehaviour
                 {
                     onSearchComplete?.Invoke();
 
-                    if (robot == null) { onComplete?.Invoke(); return; }
+                    if (robot == null) { onComplete?.Invoke(false); return; }
 
-                    if (path != null)
+                    if (path != null && path.Count > 0)
                     {
+                        bool reached = PathReachesGoal(path);
                         RobotAI ai = robot.GetComponent<RobotAI>();
                         if (ai != null)
                         {
                             ai.moveSpeed = DataManager.Instance.GetFinalMoveSpeed(bot);
-                            ai.MoveToPath(path, stepX, stepY, new Vector2(offsetX, offsetY), onComplete);
+                            ai.MoveToPath(path, stepX, stepY, new Vector2(offsetX, offsetY),
+                                () => onComplete?.Invoke(reached));
+                        }
+                        else
+                        {
+                            onComplete?.Invoke(false);
                         }
                     }
                     else
                     {
-                        onComplete?.Invoke();
+                        onComplete?.Invoke(false);
                     }
                 });
         }
     }
 
+    // 🌟 경로의 마지막 칸이 실제 목적지인지 확인
+    bool PathReachesGoal(List<Node> path)
+    {
+        if (path == null || path.Count == 0) return false;
+        Node last = path[path.Count - 1];
+        return last.gridX == endPos.x && last.gridY == endPos.y;
+    }
+
     // 🌟 오메가 전용: Q-Learning 경로로 이동
     void StartRobotEscape_QLearning(GameObject robot, DataManager.RobotInstance bot,
-        System.Action onSearchComplete, System.Action onComplete)
+        System.Action onSearchComplete, System.Action<bool> onComplete)
     {
         int stageIndex = bot.currentStage - 1;
 
@@ -333,7 +347,7 @@ public class StageMap : MonoBehaviour
         {
             Debug.LogWarning("[StageMap] 오메가 Q-Learning 학습 데이터 없음! 상점에서 먼저 학습하세요.");
             onSearchComplete?.Invoke();
-            onComplete?.Invoke();
+            onComplete?.Invoke(false);
             return;
         }
 
@@ -343,7 +357,7 @@ public class StageMap : MonoBehaviour
 
     // 🌟 Q-Learning 경로를 마커로 표시 후 로봇 이동
     IEnumerator ShowQLearningPath(GameObject robot, DataManager.RobotInstance bot,
-        List<Node> path, System.Action onSearchComplete, System.Action onComplete)
+        List<Node> path, System.Action onSearchComplete, System.Action<bool> onComplete)
     {
         // 경로 마커를 하나씩 표시 (시각적 연출)
         float markerDelay = DataManager.Instance.GetFinalSearchDelay(bot);
@@ -367,18 +381,22 @@ public class StageMap : MonoBehaviour
 
         onSearchComplete?.Invoke();
 
-        if (robot == null) { onComplete?.Invoke(); yield break; }
+        if (robot == null) { onComplete?.Invoke(false); yield break; }
+
+        // 🌟 학습된 경로가 실제 목적지까지 도달했는지 확인 (학습 부족 시 미도달)
+        bool reached = PathReachesGoal(path);
 
         // 로봇 이동
         RobotAI ai = robot.GetComponent<RobotAI>();
         if (ai != null)
         {
             ai.moveSpeed = DataManager.Instance.GetFinalMoveSpeed(bot);
-            ai.MoveToPath(path, stepX, stepY, new Vector2(offsetX, offsetY), onComplete);
+            ai.MoveToPath(path, stepX, stepY, new Vector2(offsetX, offsetY),
+                () => onComplete?.Invoke(reached));
         }
         else
         {
-            onComplete?.Invoke();
+            onComplete?.Invoke(false);
         }
     }
 

@@ -1,12 +1,12 @@
-using System; 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-public enum AlgorithmType 
-{ 
-    AStar, IDAStar, BreadthFirstSearch, BestFirstSearch, 
-    Dijkstra, JumpPointSearch, OrthogonalJumpPointSearch, Trace, ReinforcementLearning 
+public enum AlgorithmType
+{
+    AStar, IDAStar, BreadthFirstSearch, BestFirstSearch,
+    Dijkstra, JumpPointSearch, OrthogonalJumpPointSearch, Trace, ReinforcementLearning
 }
 
 public class DataManager : MonoBehaviour
@@ -27,13 +27,13 @@ public class DataManager : MonoBehaviour
     }
 
     [Header("💰 재화")]
-    public double gold = 0; 
+    public double gold = 0;
     public int diamond = 0;
 
     [Header("⚙️ 기본 밸런스 설정")]
-    public float baseCritDamage = 1.5f;         
-    public float baseDiamondDropChance = 0.05f; 
-    public int baseDiamondDropAmount = 1;       
+    public float baseCritDamage = 1.5f;
+    public float baseDiamondDropChance = 0.05f;
+    public int baseDiamondDropAmount = 1;
 
     [Header("🪙 글로벌 골드 업그레이드 (Gold Tab)")]
     public GlobalUpgrades goldUpgrades = new GlobalUpgrades();
@@ -54,7 +54,7 @@ public class DataManager : MonoBehaviour
     public int[] robotPurchaseCounts = new int[9];
 
     [Header("📖 도감 달성 데이터")]
-    public int[] maxAchievedStars = new int[9];   
+    public int[] maxAchievedStars = new int[9];
     public int[] claimedRewardStars = new int[9];
 
     [Header("🧠 오메가 강화학습")]
@@ -62,7 +62,7 @@ public class DataManager : MonoBehaviour
     public int omegaMaxTrainLevel = 20;      // 최대 강화 레벨
     public int omegaTrainBaseCost = 100;     // 1강 비용 (다이아)
     public int omegaTrainCostIncrement = 50; // 강화할 때마다 비용 증가량
-    public int omegaEpisodesPerTrain = 100;  // 강화 1회당 추가 학습 에피소드 수
+    public int omegaEpisodesPerTrain = 50;   // 강화 1회당 추가 학습 에피소드 수
 
     // 🌟 추가됨: 퀘스트 추적용 누적 데이터
     [Header("📜 퀘스트 누적 데이터")]
@@ -71,7 +71,7 @@ public class DataManager : MonoBehaviour
     public int totalDiamondDropCount = 0;
 
     // 🌟 추가됨: 퀘스트 수령 레벨 (몇 번 보상을 받았는지 기록)
-    public int[] questLevel_Escape = new int[8]; 
+    public int[] questLevel_Escape = new int[8];
     public int questLevel_Purchase = 0;
     public int questLevel_GlobalUpgrade = 0;
     public int questLevel_Merge = 0;
@@ -82,16 +82,16 @@ public class DataManager : MonoBehaviour
     {
         public int level = 0;
         public int maxLevel = 100;
-        public float valuePerLevel = 0.01f; 
+        public float valuePerLevel = 0.01f;
         public double baseCost = 100;
-        public float costMultiplier = 1.15f; 
+        public float costMultiplier = 1.15f;
 
-        public bool isLinearCost = false; 
-        public double linearCostIncrement = 10; 
+        public bool isLinearCost = false;
+        public double linearCostIncrement = 10;
 
         public float CurrentValue => level * valuePerLevel;
         public double GetNextCost() => isLinearCost ? baseCost + (level * linearCostIncrement) : baseCost * Mathf.Pow(costMultiplier, level);
-        public bool CanUpgrade => maxLevel == 0 || level < maxLevel; 
+        public bool CanUpgrade => maxLevel == 0 || level < maxLevel;
     }
 
     [System.Serializable]
@@ -104,8 +104,8 @@ public class DataManager : MonoBehaviour
         public UpgradeStat critChance = new UpgradeStat();
         public UpgradeStat critDamage = new UpgradeStat();
         [Space(10)]
-        public UpgradeStat diaDropChance = new UpgradeStat(); 
-        public UpgradeStat diaDropAmount = new UpgradeStat(); 
+        public UpgradeStat diaDropChance = new UpgradeStat();
+        public UpgradeStat diaDropAmount = new UpgradeStat();
     }
 
     [System.Serializable]
@@ -115,24 +115,24 @@ public class DataManager : MonoBehaviour
         public Sprite portraitSprite;
         public AlgorithmType algo = AlgorithmType.AStar;
         public double purchasePrice = 1000;
-        
-        public float purchaseCostMultiplier = 1.1f; 
 
-        public double baseGoldReward = 10; 
-        public double goldRewardPerLevel = 5; 
+        public float purchaseCostMultiplier = 1.1f;
+
+        public double baseGoldReward = 10;
+        public double goldRewardPerLevel = 5;
         public float baseMoveSpeed = 3.0f;
         public float baseSearchDelay = 0.05f;
-        public float baseMazeRegenTime = 3.0f; 
+        public float baseMazeRegenTime = 3.0f;
 
-        public double baseLevelUpCost = 50; 
-        
-        public float levelUpCostMultiplier = 1.05f; 
+        public double baseLevelUpCost = 50;
 
-        public int baseMergeDiamondCost = 20; 
-        public float mergeCostMultiplier = 2.5f; 
+        public float levelUpCostMultiplier = 1.05f;
 
-        public float starGoldMultiplier = 3.0f;  
-        public float starSpeedMultiplier = 1.2f; 
+        public int baseMergeDiamondCost = 20;
+        public float mergeCostMultiplier = 2.5f;
+
+        public float starGoldMultiplier = 3.0f;
+        public float starSpeedMultiplier = 1.2f;
         public float starDelayMultiplier = 0.8f;
         public float[] stageLimitTimes = new float[5] { 30f, 25f, 20f, 15f, 10f };
         // 각 스테이지별 제한시간 (초)
@@ -141,19 +141,19 @@ public class DataManager : MonoBehaviour
     [System.Serializable]
     public class LabData
     {
-        public UpgradeStat critDamage = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.1f };   
-        public UpgradeStat critChance = new UpgradeStat { maxLevel = 20, valuePerLevel = 0.01f };  
-        public UpgradeStat goldEarned = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.12f };  
-        public UpgradeStat moveSpeed = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.02f };   
-        public UpgradeStat searchDelay = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.02f }; 
-        public UpgradeStat mazeRegen = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.01f };   
-        
+        public UpgradeStat critDamage = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.1f };
+        public UpgradeStat critChance = new UpgradeStat { maxLevel = 20, valuePerLevel = 0.01f };
+        public UpgradeStat goldEarned = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.12f };
+        public UpgradeStat moveSpeed = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.02f };
+        public UpgradeStat searchDelay = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.02f };
+        public UpgradeStat mazeRegen = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.01f };
+
         public bool isDiagonalUnlocked = false;
         public int diagonalUnlockCost = 5000;
 
-        public int pullCount = 0; 
-        public int basePullCost = 50; 
-        public int pullCostIncrement = 50; 
+        public int pullCount = 0;
+        public int basePullCost = 50;
+        public int pullCostIncrement = 50;
 
         public int GetCurrentPullCost() => basePullCost + (pullCount * pullCostIncrement);
 
@@ -171,9 +171,9 @@ public class DataManager : MonoBehaviour
     [System.Serializable]
     public class RobotInstance
     {
-        public int robotId; 
-        public int star = 1; 
-        public int level = 1; 
+        public int robotId;
+        public int star = 1;
+        public int level = 1;
         public long mazeEscapeCount = 0;
         public int currentStage = 1;    // 현재 스테이지 (1~5)
         public bool[] stageClear = new bool[5]; // 각 스테이지 클리어 여부
@@ -185,9 +185,9 @@ public class DataManager : MonoBehaviour
         goldUpgrades.moveSpeed = new UpgradeStat { baseCost = 50, costMultiplier = 1.3f, valuePerLevel = 0.01f, maxLevel = 50 };
         goldUpgrades.searchDelay = new UpgradeStat { baseCost = 50, costMultiplier = 1.3f, valuePerLevel = 0.01f, maxLevel = 50 };
         goldUpgrades.mazeRegen = new UpgradeStat { baseCost = 50, costMultiplier = 1.3f, valuePerLevel = 0.002f, maxLevel = 150 };
-        goldUpgrades.goldEarned = new UpgradeStat { baseCost = 100, costMultiplier = 1.25f, valuePerLevel = 0.1505f, maxLevel = 300 }; 
+        goldUpgrades.goldEarned = new UpgradeStat { baseCost = 100, costMultiplier = 1.25f, valuePerLevel = 0.1505f, maxLevel = 300 };
         goldUpgrades.critChance = new UpgradeStat { baseCost = 250, costMultiplier = 1.4f, valuePerLevel = 0.002f, maxLevel = 175 };
-        goldUpgrades.critDamage = new UpgradeStat { baseCost = 250, costMultiplier = 1.4f, valuePerLevel = 0.004f, maxLevel = 500 }; 
+        goldUpgrades.critDamage = new UpgradeStat { baseCost = 250, costMultiplier = 1.4f, valuePerLevel = 0.004f, maxLevel = 500 };
         goldUpgrades.diaDropChance = new UpgradeStat { baseCost = 2500, costMultiplier = 1.5f, valuePerLevel = 0.01f, maxLevel = 20 };
 
         diaUpgrades.moveSpeed = new UpgradeStat { isLinearCost = true, baseCost = 10, linearCostIncrement = 10, valuePerLevel = 0.01f, maxLevel = 50 };
@@ -198,10 +198,11 @@ public class DataManager : MonoBehaviour
         diaUpgrades.critDamage = new UpgradeStat { isLinearCost = true, baseCost = 10, linearCostIncrement = 10, valuePerLevel = 0.004f, maxLevel = 500 };
         diaUpgrades.diaDropAmount = new UpgradeStat { isLinearCost = true, baseCost = 10, linearCostIncrement = 10, valuePerLevel = 1f, maxLevel = 20 };
 
-        for(int i = 0; i < 9; i++) {
+        for (int i = 0; i < 9; i++)
+        {
             if (robotConfigs[i] == null) robotConfigs[i] = new RobotConfig();
             if (labData[i] == null) labData[i] = new LabData();
-            
+
             labData[i].basePullCost = 50 * (i + 1);
             labData[i].pullCostIncrement = 50 * (i + 1);
             labData[i].diagonalUnlockCost = 5000 * (i + 1);
@@ -213,9 +214,9 @@ public class DataManager : MonoBehaviour
             labData[i].critChance = new UpgradeStat { maxLevel = 20, valuePerLevel = 0.01f };
             labData[i].critDamage = new UpgradeStat { maxLevel = 25, valuePerLevel = 0.1f };
 
-            robotConfigs[i].purchaseCostMultiplier = 1.1f; 
-            robotConfigs[i].levelUpCostMultiplier = 1.05f; 
-            
+            robotConfigs[i].purchaseCostMultiplier = 1.1f;
+            robotConfigs[i].levelUpCostMultiplier = 1.05f;
+
             robotConfigs[i].starGoldMultiplier = 3.0f;
             robotConfigs[i].starSpeedMultiplier = 1.2f;
             robotConfigs[i].starDelayMultiplier = 0.8f;
@@ -261,16 +262,16 @@ public class DataManager : MonoBehaviour
         OnCurrencyChanged?.Invoke();
     }
 
-    public void AddGold(double amount) 
-    { 
-        gold += amount; 
-        NotifyCurrencyChanged(); 
+    public void AddGold(double amount)
+    {
+        gold += amount;
+        NotifyCurrencyChanged();
     }
-    
-    public void AddDiamond(int amount) 
-    { 
-        diamond += amount; 
-        NotifyCurrencyChanged(); 
+
+    public void AddDiamond(int amount)
+    {
+        diamond += amount;
+        NotifyCurrencyChanged();
     }
 
     public void UpgradeGlobalGold(int id)
@@ -279,27 +280,27 @@ public class DataManager : MonoBehaviour
         if (target == null || !target.CanUpgrade) return;
 
         double cost = target.GetNextCost();
-        if (gold >= cost) 
-        { 
-            gold -= cost; 
-            target.level++; 
+        if (gold >= cost)
+        {
+            gold -= cost;
+            target.level++;
             totalGlobalUpgradeCount++; // 🌟 퀘스트 추적
-            NotifyCurrencyChanged(); 
+            NotifyCurrencyChanged();
         }
     }
-    
+
     public void UpgradeGlobalDiamond(int id)
     {
         UpgradeStat target = GetDiaUpgradeStatById(id);
         if (target == null || !target.CanUpgrade) return;
 
         double cost = target.GetNextCost();
-        if (diamond >= cost) 
-        { 
-            diamond -= (int)cost; 
-            target.level++; 
+        if (diamond >= cost)
+        {
+            diamond -= (int)cost;
+            target.level++;
             totalGlobalUpgradeCount++; // 🌟 퀘스트 추적
-            NotifyCurrencyChanged(); 
+            NotifyCurrencyChanged();
         }
     }
 
@@ -326,9 +327,9 @@ public class DataManager : MonoBehaviour
             if (availableStats.Count > 0)
             {
                 int randomIndex = Random.Range(0, availableStats.Count);
-                availableStats[randomIndex].level++; 
-                NotifyCurrencyChanged(); 
-                return availableNames[randomIndex]; 
+                availableStats[randomIndex].level++;
+                NotifyCurrencyChanged();
+                return availableNames[randomIndex];
             }
         }
         return null;
@@ -380,75 +381,75 @@ public class DataManager : MonoBehaviour
     public UpgradeStat GetGoldUpgradeStatById(int id) { switch (id) { case 0: return goldUpgrades.moveSpeed; case 1: return goldUpgrades.searchDelay; case 2: return goldUpgrades.mazeRegen; case 3: return goldUpgrades.goldEarned; case 4: return goldUpgrades.critChance; case 5: return goldUpgrades.critDamage; case 6: return goldUpgrades.diaDropChance; default: return null; } }
     public UpgradeStat GetDiaUpgradeStatById(int id) { switch (id) { case 0: return diaUpgrades.moveSpeed; case 1: return diaUpgrades.searchDelay; case 2: return diaUpgrades.mazeRegen; case 3: return diaUpgrades.goldEarned; case 4: return diaUpgrades.critChance; case 5: return diaUpgrades.critDamage; case 6: return diaUpgrades.diaDropAmount; default: return null; } }
 
-    public void BuyRobot(int robotId) 
-    { 
-        double price = GetCurrentPurchasePrice(robotId); 
-        if (gold >= price) 
-        { 
-            gold -= price; 
-            myRobots.Add(new RobotInstance { robotId = robotId, star = 1, level = 1 }); 
-            robotPurchaseCounts[robotId]++; 
-            
+    public void BuyRobot(int robotId)
+    {
+        double price = GetCurrentPurchasePrice(robotId);
+        if (gold >= price)
+        {
+            gold -= price;
+            myRobots.Add(new RobotInstance { robotId = robotId, star = 1, level = 1 });
+            robotPurchaseCounts[robotId]++;
+
             if (maxAchievedStars[robotId] < 1) maxAchievedStars[robotId] = 1;
 
             NotifyCurrencyChanged();
-        } 
+        }
     }
 
     public double GetLevelUpCost(int robotId, int star, int level)
     {
         var config = robotConfigs[robotId];
-        
+
         double currentBaseCost = config.baseLevelUpCost * Mathf.Pow(1.1f, star - 1);
         float currentMultiplier = config.levelUpCostMultiplier + ((star - 1) * 0.005f);
 
         return currentBaseCost * Mathf.Pow(currentMultiplier, level - 1);
     }
 
-    public void LevelUpRobot(RobotInstance robot) 
-    { 
-        if (robot.level >= 10) return; 
-        
-        double finalCost = GetLevelUpCost(robot.robotId, robot.star, robot.level); 
-        
-        if (gold >= finalCost) 
-        { 
-            gold -= finalCost; 
-            robot.level++; 
+    public void LevelUpRobot(RobotInstance robot)
+    {
+        if (robot.level >= 10) return;
+
+        double finalCost = GetLevelUpCost(robot.robotId, robot.star, robot.level);
+
+        if (gold >= finalCost)
+        {
+            gold -= finalCost;
+            robot.level++;
             NotifyCurrencyChanged();
-        } 
+        }
     }
-    
-    public void MergeRobots(RobotInstance r1, RobotInstance r2) 
-    { 
-        if (r1.robotId == 8 || r2.robotId == 8) return; 
-        if (r1.robotId == r2.robotId && r1.star == r2.star && r1.level == 10 && r2.level == 10) 
-        { 
-            r1.star++; 
-            r1.level = 1; 
+
+    public void MergeRobots(RobotInstance r1, RobotInstance r2)
+    {
+        if (r1.robotId == 8 || r2.robotId == 8) return;
+        if (r1.robotId == r2.robotId && r1.star == r2.star && r1.level == 10 && r2.level == 10)
+        {
+            r1.star++;
+            r1.level = 1;
 
             r1.mazeEscapeCount += r2.mazeEscapeCount;
 
-            myRobots.Remove(r2); 
+            myRobots.Remove(r2);
 
             if (maxAchievedStars[r1.robotId] < r1.star) maxAchievedStars[r1.robotId] = r1.star;
             totalMergeCount++; // 🌟 퀘스트 추적
-        } 
+        }
     }
 
     public void ClaimBookReward(int robotId)
     {
-        if (robotId < 0 || robotId >= 8) return; 
+        if (robotId < 0 || robotId >= 8) return;
 
-        int nextStarToClaim = claimedRewardStars[robotId] + 1; 
+        int nextStarToClaim = claimedRewardStars[robotId] + 1;
 
         if (nextStarToClaim <= maxAchievedStars[robotId])
         {
             int baseReward = 50 + (robotId * 25);
             int finalRewardAmount = baseReward * nextStarToClaim;
 
-            AddDiamond(finalRewardAmount); 
-            claimedRewardStars[robotId] = nextStarToClaim; 
+            AddDiamond(finalRewardAmount);
+            claimedRewardStars[robotId] = nextStarToClaim;
         }
     }
 
@@ -507,17 +508,17 @@ public class DataManager : MonoBehaviour
         return finalReward;
     }
 
-    public int CheckDiamondDropAmount() 
-    { 
-        float finalChance = GetTotalDiaChance(); 
-        if (UnityEngine.Random.value < finalChance) 
-        { 
-            int finalAmount = GetTotalDiaAmount(); 
-            AddDiamond(finalAmount); 
+    public int CheckDiamondDropAmount()
+    {
+        float finalChance = GetTotalDiaChance();
+        if (UnityEngine.Random.value < finalChance)
+        {
+            int finalAmount = GetTotalDiaAmount();
+            AddDiamond(finalAmount);
             totalDiamondDropCount++; // 🌟 퀘스트 추적
-            return finalAmount; 
-        } 
-        return 0; 
+            return finalAmount;
+        }
+        return 0;
     }
     public double CalculateCombatPower() { double totalPower = 0; foreach (var robot in myRobots) { float sWeight = GetFinalMoveSpeed(robot) * 100f; float dWeight = (1.0f / GetFinalSearchDelay(robot)) * 50f; bool dummyCrit; double gWeight = GetFinalGoldReward(robot, out dummyCrit) * 10f; totalPower += (sWeight + dWeight + gWeight); } return totalPower; }
 }
